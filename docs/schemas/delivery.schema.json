@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pen-y-fan.github.io/death-stranding-poc/schemas/delivery.schema.json",
+  "title": "Delivery",
+  "type": "object",
+  "additionalProperties": false,
+  "oneOf": [
+    { "required": ["id", "order_number", "status"] },
+    { "required": ["id", "order_id", "status"] }
+  ],
+  "properties": {
+    "id": { "type": "integer", "minimum": 1 },
+    "order_number": { "type": "integer", "minimum": 1 },
+    "order_id": { "type": "integer", "minimum": 1 },
+    "status": { "type": "string", "enum": ["InProgress", "STORED", "COMPLETE", "FAILED", "LOST", "in progress", "In progress", "stored", "complete", "failed", "lost", "in_progress"] },
+    "location_id": { "type": ["integer", "null"], "minimum": 1 },
+    "started_at": { "type": ["string", "null"], "format": "date-time" },
+    "ended_at": { "type": ["string", "null"], "format": "date-time" },
+    "comment": { "type": ["string", "null"] },
+    "user_id": { "type": ["integer", "null"], "minimum": 1 }
+  }
+}

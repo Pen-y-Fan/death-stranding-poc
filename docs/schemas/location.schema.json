@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pen-y-fan.github.io/death-stranding-poc/schemas/location.schema.json",
+  "title": "Location",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "name", "district_id", "is_physical"],
+  "properties": {
+    "id": { "type": "integer", "minimum": 1 },
+    "name": { "type": "string", "minLength": 1 },
+    "district_id": { "type": "integer", "minimum": 1 },
+    "is_physical": { "type": ["boolean", "integer", "string"], "enum": [true, false, 0, 1, "true", "false", "0", "1", "yes", "no", "y", "n"] }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pen-y-fan.github.io/death-stranding-poc/schemas/order.schema.json",
+  "title": "Order",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "number",
+    "name",
+    "client_id",
+    "destination_id",
+    "delivery_category_id",
+    "max_likes",
+    "weight"
+  ],
+  "properties": {
+    "id": { "type": "integer", "minimum": 1 },
+    "number": { "type": "integer", "minimum": 1 },
+    "name": { "type": "string", "minLength": 1 },
+    "client_id": { "type": "integer", "minimum": 1 },
+    "destination_id": { "type": "integer", "minimum": 1 },
+    "delivery_category_id": { "type": "integer", "minimum": 1 },
+    "max_likes": { "type": "number" },
+    "weight": { "type": "number", "minimum": 0 }
+  }
+}
