@@ -1,6 +1,12 @@
 # Death Stranding PoC
 
-I want to create a PoC for Death stranding
+I want to expand the PoC for Death stranding, to include:
+
+- A table of orders
+- A table of deliveries
+
+The only data structure with mutable data is the delivery, which is related to an order, and the order is related to a
+client and destination. The delivery data should be persisted to local storage.
 
 ## Tech stack:
 
@@ -24,6 +30,6 @@ I want to create a PoC for Death stranding
 ## Local dev environment
 
 - IDE: Rust Rover by JetBrains
-- Mac book m2 running IOS
+- Mac book running IOS
 - Brew (Package Manager) installed
-- Rust installed: Rustup, cargo rustc are installed v1.89
+- Rust: Rustup, cargo rustc are installed v1.89
