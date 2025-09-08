@@ -4,25 +4,25 @@ Last generated: 2025-09-08 13:23
 
 Below is an ordered, actionable checklist derived from docs/description.md, docs/manual-user.md, and the current codebase. Each item starts with a checkbox [ ] to track completion. Tasks cover architecture, build/deploy, data modeling, WASM boundary, business logic, UI shell, and testing. Where relevant, required input data is identified (e.g., JSON files for Orders, Locations, etc.).
 
-1. [ ] Architecture and build pipeline
-   1. [ ] Switch CI/CD (GitHub Pages workflow) to wasm-pack to generate ./pkg JS glue expected by index.html. (Build ./pkg and deploy index.html + pkg/) 
-   2. [ ] Ensure toolchain steps in CI: install wasm32-unknown-unknown target and install wasm-pack. 
-   3. [ ] Adjust workflow to publish docs/ with index.html and pkg/ using actions/upload-pages-artifact + actions/deploy-pages. 
-   4. [ ] Document local dev quickstart in README: wasm-pack build --target web --release; basic-http-server .
+1. [x] Architecture and build pipeline
+   1. [x] Switch CI/CD (GitHub Pages workflow) to wasm-pack to generate ./pkg JS glue expected by index.html. (Build ./pkg and deploy index.html + pkg/) 
+   2. [x] Ensure toolchain steps in CI: install wasm32-unknown-unknown target and install wasm-pack. 
+   3. [x] Adjust workflow to publish docs/ with index.html and pkg/ using actions/upload-pages-artifact + actions/deploy-pages. 
+   4. [x] Document local dev quickstart in README: wasm-pack build --target web --release; basic-http-server .
 
-2. [ ] Crate configuration and dependencies
-   1. [ ] Confirm [lib] crate-type includes ["cdylib", "rlib"]. 
-   2. [ ] Ensure web-sys features include Window and Storage (already present); add any new APIs explicitly when used. 
-   3. [ ] Pin compatible versions for wasm-bindgen, web-sys, serde/serde_json; document upgrade path.
+2. [x] Crate configuration and dependencies
+   1. [x] Confirm [lib] crate-type includes ["cdylib", "rlib"]. 
+   2. [x] Ensure web-sys features include Window and Storage (already present); add any new APIs explicitly when used. 
+   3. [x] Pin compatible versions for wasm-bindgen, web-sys, serde/serde_json; document upgrade path.
 
 3. [ ] Data model definition (align with manual-user.md and description.md)
-   1. [ ] Define core structs with serde support:
-       - [ ] District { id, name, region (East/Central/West) }
-       - [ ] Location { id, name, district_id, is_physical }
-       - [ ] DeliveryCategory { id, name }
-       - [ ] Order { number (unique, int), name, client_id (Location), destination_id (Location), delivery_category_id, max_likes (f32), weight (f32) }
-       - [ ] DeliveryStatus enum { IN_PROGRESS, STORED, COMPLETE, FAILED, LOST }
-       - [ ] Delivery { id, order_number, status: DeliveryStatus, location_id, started_at, ended_at, comment, user_id }
+   1. [x] Define core structs with serde support:
+       - [x] District { id, name, region (East/Central/West) }
+       - [x] Location { id, name, district_id, is_physical }
+       - [x] DeliveryCategory { id, name }
+       - [x] Order { number (unique, int), name, client_id (Location), destination_id (Location), delivery_category_id, max_likes (f32), weight (f32) }
+       - [x] DeliveryStatus enum { InProgress, STORED, COMPLETE, FAILED, LOST }
+       - [x] Delivery { id, order_number, status: DeliveryStatus, location_id, started_at, ended_at, comment, user_id }
    2. [ ] Provide JSON schemas/examples for seed data (see Required data section below). 
    3. [ ] Validate constraints (e.g., Order.number unique; required fields) at import time.
 
@@ -33,14 +33,14 @@ Below is an ordered, actionable checklist derived from docs/description.md, docs
    4. [ ] Add versioning key in storage to handle migrations (e.g., schema_version).
 
 5. [ ] Business logic for deliveries (user actions)
-   1. [ ] take_order(number): create IN_PROGRESS delivery if the user has no active or stored delivery for that order. 
+   1. [ ] take_order(number): create InProgress delivery if the user has no active or stored delivery for that order. 
    2. [ ] store_delivery(number, location_id, comment?): set status to STORED with location. 
-   3. [ ] continue_delivery(number, comment?): move STORED → IN_PROGRESS. 
+   3. [ ] continue_delivery(number, comment?): move STORED → InProgress. 
    4. [ ] make_delivery(number): set COMPLETE, ended_at=now, move cargo to client location. 
    5. [ ] fail_delivery(number, comment?): set FAILED and move cargo to destination. 
    6. [ ] lose_delivery(number, comment?): set LOST. 
    7. [ ] Bulk actions: 
-       - [ ] bulk_accept(order_numbers[]): create IN_PROGRESS deliveries where none in-progress exist. 
+       - [ ] bulk_accept(order_numbers[]): create InProgress deliveries where none in-progress exist. 
        - [ ] bulk_complete(order_numbers[]): if no delivery exists, create COMPLETE; if exists, set COMPLETE. 
    8. [ ] Enforce status transition rules and edge cases; record timestamps in Europe/London (or user tz when available).
 

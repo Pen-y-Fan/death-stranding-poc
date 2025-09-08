@@ -85,10 +85,10 @@ Filters available (above content)
 
 Per‑row actions (contextual to the signed‑in user)
 
-- Take on order: Creates an IN_PROGRESS delivery for the current user if you don’t already have an active/Stored
+- Take on order: Creates an InProgress delivery for the current user if you don’t already have an active/Stored
   delivery for that order.
-- Store delivery: For an IN_PROGRESS delivery you hold, store it to a chosen location with optional comment.
-- Continue delivery: For a Stored delivery you hold, resume it (status back to IN_PROGRESS).
+- Store delivery: For an InProgress delivery you hold, store it to a chosen location with optional comment.
+- Continue delivery: For a Stored delivery you hold, resume it (status back to InProgress).
 - Make delivery: Complete a delivery you hold (sets ended_at and marks COMPLETE, moving cargo to the client’s location).
 
 Form fields (will be supplied to the app e.g JSON or Rust built in collection)
@@ -140,7 +140,7 @@ Row actions (buttons)
 - Fail: Marks delivery FAILED and moves cargo to the order’s destination; optional comment recorded.
 - Lost: Marks delivery LOST; optional comment recorded.
 - Store: Switches to Stored at a chosen location (requires selecting a location and optional comment).
-- Continue: Displayed for stored back to IN_PROGRESS (optionally adding a comment). Some actions are only visible for
+- Continue: Displayed for stored back to InProgress (optionally adding a comment). Some actions are only visible for
   compatible current statuses.
 
 Create/Edit delivery form fields
@@ -161,7 +161,7 @@ Create/Edit delivery form fields
 - Pagination: Use the paginator at the bottom to switch pages; adjust per‑page size if available.
 - Bulk actions:
     - Orders: Accept and Complete (bulk) actions are available using checkboxes to select multiple rows.
-      - Bulk Accept: Creates a delivery of each selected orders as IN_PROGRESS (only if there are no existing deliveries in progress).
+      - Bulk Accept: Creates a delivery of each selected orders as InProgress (only if there are no existing deliveries in progress).
       - Bulk Complete: Marks selected orders.delivery as COMPLETE (even if no delivery exists, create a completed one, if one exists amend it to complete).
     - Deliveries: Bulk Delete is available.
 
