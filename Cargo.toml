@@ -1,0 +1,21 @@
+[package]
+name = "death-stranding-poc"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+wasm-bindgen = "0.2"  # For interacting with JavaScript/browser APIs
+serde = { version = "1.0", features = ["derive"] } # For serialization/deserialization (JSON)
+serde_json = "1.0"
+
+[dependencies.web-sys]
+version = "0.3.78"
+features = [
+    "Window",
+    "Storage",
+]
+
+# Optional:  For a more robust UI framework (consider later)
+# yew = "0.21"  # A popular Rust-based frontend framework
+[lib]
+crate-type = ["cdylib", "rlib"]

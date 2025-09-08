@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Death Stranding PoC</title>
+</head>
+<body>
+
+<h1>Order Management</h1>
+
+<div id="order-list">
+    <!-- Orders will be dynamically added here -->
+</div>
+
+<div id="delivery-status">
+    <!-- Delivery status will be displayed here -->
+</div>
+
+<script type="module">
+    import init, { initialize, take_order, deliver_order } from './pkg/death_stranding_poc.js';
+
+    const orderListDiv = document.getElementById('order-list');
+    const statusDiv = document.getElementById('delivery-status');
+
+    function getOrders() {
+        try {
+            const raw = localStorage.getItem('orders');
+            return raw ? JSON.parse(raw) : [];
+        } catch (e) {
+            console.error('Failed to read orders from localStorage', e);
+            return [];
+        }
+    }
+
+    function getDeliveries() {
+        try {
+            const raw = localStorage.getItem('deliveries');
+            return raw ? JSON.parse(raw) : [];
+        } catch (e) {
+            console.error('Failed to read deliveries from localStorage', e);
+            return [];
+        }
+    }
+
+    function render() {
+        const orders = getOrders();
+        const deliveries = getDeliveries();
+
+        // Build a simple table
+        let html = '<table border="1" cellpadding="6" cellspacing="0">';
+        html += '<thead><tr><th>ID</th><th>Description</th><th>Status</th><th>Action</th></tr></thead><tbody>';
+        for (const o of orders) {
+            const d = deliveries.find(dd => dd.order_id === o.id);
+            const status = d ? d.status : 'not_taken';
+            let actionHtml = '';
+            if (!d) {
+                actionHtml = `<button data-action="take" data-id="${o.id}">Take</button>`;
+            } else if (d.status !== 'delivered') {
+                actionHtml = `<button data-action="deliver" data-id="${o.id}">Deliver</button>`;
+            } else {
+                actionHtml = '<span>Delivered</span>';
+            }
+            html += `<tr><td>${o.id}</td><td>${o.description}</td><td>${status}</td><td>${actionHtml}</td></tr>`;
+        }
+        html += '</tbody></table>';
+        orderListDiv.innerHTML = html;
+
+        // Delegate button clicks
+        orderListDiv.querySelectorAll('button[data-action]')?.forEach(btn => {
+            btn.addEventListener('click', async (ev) => {
+                const b = ev.currentTarget;
+                const id = parseInt(b.getAttribute('data-id'), 10);
+                const action = b.getAttribute('data-action');
+                try {
+                    if (action === 'take') {
+                        take_order(id);
+                    } else if (action === 'deliver') {
+                        deliver_order(id);
+                    }
+                    // Re-render after state change
+                    render();
+                } catch (e) {
+                    console.error('Action failed', action, id, e);
+                }
+            });
+        });
+
+        // Status summary
+        const delivered = deliveries.filter(d => d.status === 'delivered').length;
+        const pending = deliveries.filter(d => d.status !== 'delivered').length;
+        statusDiv.textContent = `Pending: ${pending}, Delivered: ${delivered}`;
+    }
+
+    init()
+        .then(() => {
+            try {
+                initialize();
+            } catch (e) {
+                console.error('initialize() failed', e);
+            }
+            render();
+        })
+        .catch(err => {
+            console.error('WASM init failed', err);
+            orderListDiv.textContent = 'Failed to initialize WASM module. See console for details.';
+        });
+</script>
+
+</body>
+</html>
