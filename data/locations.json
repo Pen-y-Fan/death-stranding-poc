@@ -1,0 +1,242 @@
+[
+  {
+    "id": 1,
+    "name": "Capital Knot City",
+    "is_physical": true,
+    "district_id": 3
+  },
+  {
+    "id": 2,
+    "name": "Chiral Artist's Studio",
+    "is_physical": true,
+    "district_id": 2
+  },
+  {
+    "id": 3,
+    "name": "Collector",
+    "is_physical": true,
+    "district_id": 2
+  },
+  {
+    "id": 4,
+    "name": "Cosplayer",
+    "is_physical": true,
+    "district_id": 2
+  },
+  {
+    "id": 5,
+    "name": "Craftsman",
+    "is_physical": true,
+    "district_id": 2
+  },
+  {
+    "id": 6,
+    "name": "Distribution Center North of Mountain Knot City",
+    "is_physical": true,
+    "district_id": 2
+  },
+  {
+    "id": 7,
+    "name": "Distribution Center South of Lake Knot City",
+    "is_physical": true,
+    "district_id": 2
+  },
+  {
+    "id": 8,
+    "name": "Distribution Center West of Capital Knot City",
+    "is_physical": true,
+    "district_id": 3
+  },
+  {
+    "id": 9,
+    "name": "Doctor",
+    "is_physical": true,
+    "district_id": 2
+  },
+  {
+    "id": 10,
+    "name": "Elder",
+    "is_physical": true,
+    "district_id": 2
+  },
+  {
+    "id": 11,
+    "name": "Engineer",
+    "is_physical": true,
+    "district_id": 2
+  },
+  {
+    "id": 12,
+    "name": "Evo-devo Biologist",
+    "is_physical": true,
+    "district_id": 2
+  },
+  {
+    "id": 13,
+    "name": "Film Director",
+    "is_physical": true,
+    "district_id": 2
+  },
+  {
+    "id": 14,
+    "name": "First Prepper",
+    "is_physical": true,
+    "district_id": 2
+  },
+  {
+    "id": 15,
+    "name": "Geologist",
+    "is_physical": true,
+    "district_id": 2
+  },
+  {
+    "id": 16,
+    "name": "Heartman's Lab",
+    "is_physical": true,
+    "district_id": 2
+  },
+  {
+    "id": 17,
+    "name": "Junk Dealer",
+    "is_physical": true,
+    "district_id": 2
+  },
+  {
+    "id": 18,
+    "name": "Lake Knot City",
+    "is_physical": true,
+    "district_id": 2
+  },
+  {
+    "id": 19,
+    "name": "Ludens Fan",
+    "is_physical": true,
+    "district_id": 3
+  },
+  {
+    "id": 20,
+    "name": "Mama's Lab",
+    "is_physical": true,
+    "district_id": 2
+  },
+  {
+    "id": 21,
+    "name": "Mountain Knot City",
+    "is_physical": true,
+    "district_id": 2
+  },
+  {
+    "id": 22,
+    "name": "Mountaineer",
+    "is_physical": true,
+    "district_id": 2
+  },
+  {
+    "id": 23,
+    "name": "Musician",
+    "is_physical": true,
+    "district_id": 3
+  },
+  {
+    "id": 24,
+    "name": "Novelist's Son",
+    "is_physical": true,
+    "district_id": 2
+  },
+  {
+    "id": 25,
+    "name": "Paleontologist",
+    "is_physical": true,
+    "district_id": 2
+  },
+  {
+    "id": 26,
+    "name": "Photographer",
+    "is_physical": true,
+    "district_id": 2
+  },
+  {
+    "id": 27,
+    "name": "Port Knot City",
+    "is_physical": true,
+    "district_id": 3
+  },
+  {
+    "id": 28,
+    "name": "Roboticist",
+    "is_physical": true,
+    "district_id": 2
+  },
+  {
+    "id": 29,
+    "name": "South Knot City",
+    "is_physical": true,
+    "district_id": 2
+  },
+  {
+    "id": 30,
+    "name": "Spiritualist",
+    "is_physical": true,
+    "district_id": 2
+  },
+  {
+    "id": 31,
+    "name": "Timefall Farm",
+    "is_physical": true,
+    "district_id": 2
+  },
+  {
+    "id": 32,
+    "name": "Veteran Porter",
+    "is_physical": true,
+    "district_id": 2
+  },
+  {
+    "id": 33,
+    "name": "Waystation North of Mountain Knot City",
+    "is_physical": true,
+    "district_id": 2
+  },
+  {
+    "id": 34,
+    "name": "Waystation West of Capital Knot City",
+    "is_physical": true,
+    "district_id": 3
+  },
+  {
+    "id": 35,
+    "name": "Weather Station",
+    "is_physical": true,
+    "district_id": 2
+  },
+  {
+    "id": 36,
+    "name": "Wind Farm",
+    "is_physical": true,
+    "district_id": 3
+  },
+  {
+    "id": 37,
+    "name": "In progress (Eastern region)",
+    "is_physical": false,
+    "district_id": 3
+  },
+  {
+    "id": 38,
+    "name": "In progress (Central region)",
+    "is_physical": false,
+    "district_id": 2
+  },
+  {
+    "id": 39,
+    "name": "Other (Eastern region)",
+    "is_physical": false,
+    "district_id": 3
+  },
+  {
+    "id": 40,
+    "name": "Other (Central region)",
+    "is_physical": false,
+    "district_id": 2
+  }
+]

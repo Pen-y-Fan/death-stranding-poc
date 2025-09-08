@@ -1,0 +1,18 @@
+[
+  {
+    "id": 1,
+    "name": "Admin",
+    "email": "admin@example.com",
+    "email_verified_at": "2025-09-08 14:04:51",
+    "password": "<encrypted-password>",
+    "remember_token": "<encrypted-remember_token>"
+  },
+  {
+    "id": 2,
+    "name": "User",
+    "email": "user@example.com",
+    "email_verified_at": "2025-09-08 14:04:51",
+    "password": "<encrypted-password>",
+    "remember_token": "<encrypted-remember_token>"
+  }
+]

@@ -1,0 +1,22 @@
+[
+  {
+    "id": 1,
+    "started_at": "2025-09-08 15:15:44",
+    "ended_at": null,
+    "status": "In progress",
+    "comment": null,
+    "order_id": 1,
+    "user_id": 2,
+    "location_id": 37
+  },
+  {
+    "id": 2,
+    "started_at": "2025-09-08 15:15:51",
+    "ended_at": null,
+    "status": "In progress",
+    "comment": null,
+    "order_id": 2,
+    "user_id": 2,
+    "location_id": 37
+  }
+]

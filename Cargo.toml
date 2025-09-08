@@ -2,6 +2,9 @@
 name = "death-stranding-poc"
 version = "0.1.0"
 edition = "2024"
+description = "Death Stranding proof-of-concept delivery tracker using Rust WASM"
+repository = "https://github.com/Pen-y-Fan/death-stranding-poc"
+license = "MIT"
 
 [dependencies]
 wasm-bindgen = "0.2.92"  # For interacting with JavaScript/browser APIs
