@@ -15,7 +15,7 @@ Below is an ordered, actionable checklist derived from docs/description.md, docs
    2. [x] Ensure web-sys features include Window and Storage (already present); add any new APIs explicitly when used. 
    3. [x] Pin compatible versions for wasm-bindgen, web-sys, serde/serde_json; document upgrade path.
 
-3. [ ] Data model definition (align with manual-user.md and description.md)
+3. [x] Data model definition (align with manual-user.md and description.md)
    1. [x] Define core structs with serde support:
        - [x] District { id, name, region (East/Central/West) }
        - [x] Location { id, name, district_id, is_physical }
@@ -23,8 +23,8 @@ Below is an ordered, actionable checklist derived from docs/description.md, docs
        - [x] Order { number (unique, int), name, client_id (Location), destination_id (Location), delivery_category_id, max_likes (f32), weight (f32) }
        - [x] DeliveryStatus enum { InProgress, STORED, COMPLETE, FAILED, LOST }
        - [x] Delivery { id, order_number, status: DeliveryStatus, location_id, started_at, ended_at, comment, user_id }
-   2. [ ] Provide JSON schemas/examples for seed data (see Required data section below). 
-   3. [ ] Validate constraints (e.g., Order.number unique; required fields) at import time.
+   2. [x] Provide JSON schemas/examples for seed data (see Required data section below). 
+   3. [x] Validate constraints (e.g., Order.number unique; required fields) at import time.
 
 4. [ ] Data loading and persistence (WASM boundary)
    1. [ ] Implement JSON import functions exposed via wasm-bindgen to load master data into localStorage: districts.json, locations.json, delivery_categories.json, orders.json. 
@@ -80,12 +80,12 @@ Below is an ordered, actionable checklist derived from docs/description.md, docs
     3. [ ] Post-deploy smoke checklist: load page, verify pkg/death_stranding_poc.js exists, actions function.
 
 13. [ ] Required data (you can supply these as JSON files)
-    1. [ ] districts.json: list of Districts with region names (East/Central/West). 
-    2. [ ] locations.json: Facilities with district_id and is_physical flag. 
-    3. [ ] delivery_categories.json: Category taxonomy. 
-    4. [ ] orders.json: All 540 Orders with required fields (number, name, client_id, destination_id, delivery_category_id, max_likes, weight). 
-    5. [ ] users.json (optional): If multi-user scoping is needed; otherwise infer a single current user. 
-    6. [ ] deliveries.json (optional initial state): Seed for demo/testing.
+    1. [x] districts.json: list of Districts with region names (East/Central/West). 
+    2. [x] locations.json: Facilities with district_id and is_physical flag. 
+    3. [x] delivery_categories.json: Category taxonomy. 
+    4. [x] orders.json: All 540 Orders with required fields (number, name, client_id, destination_id, delivery_category_id, max_likes, weight). 
+    5. [x] users.json (optional): If multi-user scoping is needed; otherwise infer a single current user. 
+    6. [x] deliveries.json (optional initial state): Seed for demo/testing.
 
 14. [ ] Time and timezone handling
     1. [ ] Decide and implement Europe/London default timestamping on actions; allow override for tests. 

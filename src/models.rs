@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Region {
@@ -152,4 +153,45 @@ where
             &"bool or 0/1",
         )),
     }
+}
+
+/// Validate Orders for basic constraints (unique number; required fields non-empty; non-negative weight)
+pub fn validate_orders(orders: &[Order]) -> Result<(), String> {
+    let mut seen = HashSet::new();
+    for (idx, o) in orders.iter().enumerate() {
+        if o.number == 0 {
+            return Err(format!("Order at index {} has number 0 (invalid)", idx));
+        }
+        if o.name.trim().is_empty() {
+            return Err(format!("Order {} has empty name", o.number));
+        }
+        if o.client_id == 0 {
+            return Err(format!("Order {} has invalid client_id=0", o.number));
+        }
+        if o.destination_id == 0 {
+            return Err(format!("Order {} has invalid destination_id=0", o.number));
+        }
+        if o.delivery_category_id == 0 {
+            return Err(format!(
+                "Order {} has invalid delivery_category_id=0",
+                o.number
+            ));
+        }
+        if !o.weight.is_finite() || o.weight < 0.0 {
+            return Err(format!(
+                "Order {} has invalid weight {}",
+                o.number, o.weight
+            ));
+        }
+        if !o.max_likes.is_finite() {
+            return Err(format!(
+                "Order {} has non-finite max_likes {}",
+                o.number, o.max_likes
+            ));
+        }
+        if !seen.insert(o.number) {
+            return Err(format!("Duplicate order number detected: {}", o.number));
+        }
+    }
+    Ok(())
 }

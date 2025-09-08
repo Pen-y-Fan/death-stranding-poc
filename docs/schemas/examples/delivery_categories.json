@@ -1,6 +1,5 @@
 [
   { "id": 1, "name": "Urgent" },
   { "id": 2, "name": "Materials" },
-  { "id": 3, "name": "Fragile" },
-  { "id": 4, "name": "Standard" }
+  { "id": 3, "name": "Fragile" }
 ]

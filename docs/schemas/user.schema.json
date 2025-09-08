@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pen-y-fan.github.io/death-stranding-poc/schemas/user.schema.json",
+  "title": "User",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "name", "email"],
+  "properties": {
+    "id": { "type": "integer", "minimum": 1 },
+    "name": { "type": "string", "minLength": 1 },
+    "email": { "type": "string", "format": "email" },
+    "email_verified_at": { "type": ["string", "null"], "minLength": 1 },
+    "password": { "type": ["string", "null"] },
+    "remember_token": { "type": ["string", "null"] }
+  }
+}
