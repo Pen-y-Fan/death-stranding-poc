@@ -79,17 +79,17 @@ JSON files for Orders, Locations, etc.).
     1. [x] Validate inputs on all WASM-exposed functions; return Result-like error strings across the boundary.
     2. [x] Handle localStorage errors (quota, unavailable) gracefully.
 
-11. [ ] Testing (native and wasm)
-    1. [ ] Add native unit tests for pure logic (status transitions, filtering, sorting, validation).
-    2. [ ] Add wasm-bindgen-test for WASM boundary where feasible (optional headless).
-    3. [ ] Ensure existing native build remains working under cfg(target_arch) gating.
-    4. [ ] Provide test fixtures (JSON) for Orders/Locations/etc.
-    5. [ ] Add tests for bulk actions edge cases (e.g., duplicate accept, complete without existing delivery).
+11. [x] Testing (native and wasm)
+    1. [x] Add native unit tests for pure logic (status transitions, filtering, sorting, validation).
+    2. [x] Add wasm-bindgen-test for WASM boundary where feasible (optional headless).
+    3. [x] Ensure existing native build remains working under cfg(target_arch) gating.
+    4. [x] Provide test fixtures (JSON) for Orders/Locations/etc.
+    5. [x] Add tests for bulk actions edge cases (e.g., duplicate accept, complete without existing delivery).
 
-12. [ ] Deployment (GitHub Pages)
-    1. [ ] Update .github/workflows/deploy.yml to wasm-pack build and publish docs/ with pkg/ and index.html.
-    2. [ ] Add a manual deployment note in README for GitHub Pages settings.
-    3. [ ] Post-deploy smoke checklist: load page, verify pkg/death_stranding_poc.js exists, actions function.
+12. [x] Deployment (GitHub Pages)
+    1. [x] Update .github/workflows/deploy.yml to wasm-pack build and publish docs/ with pkg/ and index.html.
+    2. [x] Add a manual deployment note in README for GitHub Pages settings.
+    3. [x] Post-deploy smoke checklist: load page, verify pkg/death_stranding_poc.js exists, actions function.
 
 13. [ ] Required data (you can supply these as JSON files) (available in `data/*.json`)
     1. [x] districts.json: list of Districts with region names (East/Central/West).
@@ -100,14 +100,14 @@ JSON files for Orders, Locations, etc.).
     5. [x] users.json (optional): If multi-user scoping is needed; otherwise infer a single current user.
     6. [x] deliveries.json (optional initial state): Seed for demo/testing.
 
-14. [ ] Time and timezone handling
-    1. [ ] Decide and implement Europe/London default timestamping on actions; allow override for tests.
-    2. [ ] Store timestamps in ISO 8601 UTC with separate display-timezone transformation in UI.
+14. [x] Time and timezone handling
+    1. [x] Decide and implement Europe/London default timestamping on actions; allow override for tests.
+    2. [x] Store timestamps in ISO 8601 UTC with separate display-timezone transformation in UI.
 
-15. [ ] Documentation updates
-    1. [ ] Update README with build/run/test instructions (wasm-pack, local server).
-    2. [ ] Add brief API docs for exposed WASM functions.
-    3. [ ] Link to docs/manual-user.md and docs/description.md from README.
+15. [x] Documentation updates
+    1. [x] Update README with build/run/test instructions (wasm-pack, local server).
+    2. [x] Add brief API docs for exposed WASM functions.
+    3. [x] Link to docs/manual-user.md and docs/description.md from README.
 
 16. [ ] Performance and size (PoC-appropriate)
     1. [ ] Keep web-sys features minimal; audit features if adding new APIs.
