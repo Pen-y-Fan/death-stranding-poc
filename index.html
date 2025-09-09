@@ -1,30 +1,94 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="utf-8">
     <title>Death Stranding PoC</title>
 </head>
 <body>
 
-<h1>Order Management</h1>
+<nav>
+    <button id="tab-dashboard" aria-controls="panel-dashboard">Dashboard</button>
+    <button id="tab-orders" aria-controls="panel-orders">Orders</button>
+    <button id="tab-deliveries" aria-controls="panel-deliveries">Deliveries</button>
+    <button id="tab-locations" aria-controls="panel-locations">Locations</button>
+</nav>
 
-<div id="order-list">
-    <!-- Orders will be dynamically added here -->
-</div>
+<section id="panel-dashboard" hidden>
+    <h1>Dashboard</h1>
+    <div id="dashboard-summary" role="status" aria-live="polite"></div>
+</section>
 
-<div id="delivery-status">
-    <!-- Delivery status will be displayed here -->
-</div>
+<section id="panel-orders">
+    <h1>Orders</h1>
+    <fieldset>
+        <legend>Filters</legend>
+        <label>District
+            <select id="filter-district"><option value="">All</option></select>
+        </label>
+        <label>Client
+            <select id="filter-client"><option value="">All</option></select>
+        </label>
+        <label>Destination
+            <select id="filter-destination"><option value="">All</option></select>
+        </label>
+        <label>Category
+            <select id="filter-category"><option value="">All</option></select>
+        </label>
+        <fieldset>
+            <legend>Delivery Status</legend>
+            <label><input type="radio" name="status" value="" checked> Any</label>
+            <label><input type="radio" name="status" value="any"> Has delivery</label>
+            <label><input type="radio" name="status" value="none"> None</label>
+            <label><input type="radio" name="status" value="in_progress"> In progress</label>
+            <label><input type="radio" name="status" value="stored"> Stored</label>
+            <label><input type="radio" name="status" value="complete"> Complete</label>
+            <label><input type="radio" name="status" value="failed"> Failed</label>
+            <label><input type="radio" name="status" value="lost"> Lost</label>
+        </fieldset>
+        <fieldset>
+            <legend>Completion</legend>
+            <label><input type="radio" name="completion" value=""> Any</label>
+            <label><input type="radio" name="completion" value="true"> Completed</label>
+            <label><input type="radio" name="completion" value="false"> Not completed</label>
+        </fieldset>
+        <label>Search
+            <input id="filter-search" placeholder="Order # or name">
+        </label>
+    </fieldset>
+    <div id="order-list" role="table" aria-label="Orders table">
+        <!-- Orders will be dynamically added here -->
+    </div>
+    <div id="orders-pagination"></div>
+    <div id="seed-banner" role="alert" style="margin: 1rem 0; padding: .75rem; border: 1px solid #ccc; background: #fffbdd;">
+        No data found. Click "Load demo data" to import sample Orders, Locations, Districts and Categories for this PoC.
+        <button id="btn-seed" type="button">Load demo data</button>
+    </div>
+</section>
+
+<section id="panel-deliveries" hidden>
+    <h1>Deliveries</h1>
+    <div id="delivery-status" role="status" aria-live="polite"></div>
+</section>
+
+<section id="panel-locations" hidden>
+    <h1>Locations</h1>
+    <div id="locations-list"></div>
+</section>
 
 <script type="module">
-    import init, { initialize, take_order, deliver_order } from './pkg/death_stranding_poc.js';
+    import init, { initialize, take_order, make_delivery, store_delivery, continue_delivery, fail_delivery, lose_delivery, query_orders, get_districts, get_locations, get_delivery_categories, import_districts, import_locations, import_delivery_categories, import_orders, import_deliveries, get_schema_version, set_schema_version } from './pkg/death_stranding_poc.js';
 
     const orderListDiv = document.getElementById('order-list');
     const statusDiv = document.getElementById('delivery-status');
+    const filterDistrict = document.getElementById('filter-district');
+    const filterClient = document.getElementById('filter-client');
+    const filterDestination = document.getElementById('filter-destination');
+    const filterCategory = document.getElementById('filter-category');
+    const filterSearch = document.getElementById('filter-search');
 
     function getOrders() {
         try {
-            const raw = localStorage.getItem('orders');
+            const raw = localStorage.getItem('ds:orders');
             return raw ? JSON.parse(raw) : [];
         } catch (e) {
             console.error('Failed to read orders from localStorage', e);
@@ -34,7 +98,7 @@
 
     function getDeliveries() {
         try {
-            const raw = localStorage.getItem('deliveries');
+            const raw = localStorage.getItem('ds:deliveries');
             return raw ? JSON.parse(raw) : [];
         } catch (e) {
             console.error('Failed to read deliveries from localStorage', e);
@@ -43,24 +107,76 @@
     }
 
     function render() {
+        const banner = document.getElementById('seed-banner');
+        const hasOrders = getOrders().length > 0;
+        if (banner) banner.hidden = hasOrders;
+        // Use WASM query for orders with minimal filter/sort/pagination
+        const filter = {};
+        const statusVal = (document.querySelector('input[name="status"]:checked')?.value || '').trim();
+        const completionVal = (document.querySelector('input[name="completion"]:checked')?.value || '').trim();
+        const searchVal = filterSearch.value || '';
+        const f = {};
+        if (filterDistrict.value) f.district_id = parseInt(filterDistrict.value, 10);
+        if (filterClient.value) f.client_id = parseInt(filterClient.value, 10);
+        if (filterDestination.value) f.destination_id = parseInt(filterDestination.value, 10);
+        if (filterCategory.value) f.delivery_category_id = parseInt(filterCategory.value, 10);
+        if (statusVal) f.delivery_status = statusVal;
+        if (completionVal) f.completion = completionVal === 'true';
+        const json = query_orders(JSON.stringify(f), 1, 20, 'number', 'asc', searchVal);
+        let parsed;
+        try { parsed = JSON.parse(json); } catch(e) { parsed = { total: 0, items: [] }; }
+        const items = parsed.items || [];
         const orders = getOrders();
         const deliveries = getDeliveries();
 
         // Build a simple table
-        let html = '<table border="1" cellpadding="6" cellspacing="0">';
-        html += '<thead><tr><th>ID</th><th>Description</th><th>Status</th><th>Action</th></tr></thead><tbody>';
-        for (const o of orders) {
-            const d = deliveries.find(dd => dd.order_id === o.id);
-            const status = d ? d.status : 'not_taken';
+        let html = '<table border="1" cellpadding="6" cellspacing="0" role="grid">';
+        html += '<thead><tr><th scope="col">#</th><th scope="col">Name</th><th scope="col">Status</th><th scope="col">Action</th></tr></thead><tbody>';
+        for (const it of items) {
+            const o = { id: it.number, description: it.name };
+            const deliveriesLocal = getDeliveries();
+            const dels = deliveriesLocal.filter(dd => (dd.order_number ?? dd.order_id) === o.id);
+            const norm = (s) => {
+                if (!s) return '';
+                const t = String(s);
+                const lo = t.toLowerCase();
+                if (lo === 'in progress' || lo === 'in_progress' || lo === 'inprogress') return 'InProgress';
+                return t.toUpperCase();
+            };
+            const active = dels.find(dd => {
+                const st = norm(dd.status);
+                return st === 'InProgress' || st === 'STORED';
+            });
+            const hasComplete = dels.some(dd => norm(dd.status) === 'COMPLETE');
+            const hasFailed = dels.some(dd => norm(dd.status) === 'FAILED');
+            const hasLost = dels.some(dd => norm(dd.status) === 'LOST');
+
+            const statusNorm = active ? norm(active.status)
+                : hasComplete ? 'COMPLETE'
+                : hasFailed ? 'FAILED'
+                : hasLost ? 'LOST'
+                : 'not_taken';
+
             let actionHtml = '';
-            if (!d) {
+            if (!active) {
                 actionHtml = `<button data-action="take" data-id="${o.id}">Take</button>`;
-            } else if (d.status !== 'delivered') {
-                actionHtml = `<button data-action="deliver" data-id="${o.id}">Deliver</button>`;
+            } else if (statusNorm === 'STORED') {
+                actionHtml = `
+                    <button data-action="continue" data-id="${o.id}">Continue</button>
+                    <button data-action="deliver" data-id="${o.id}">Make delivery</button>
+                    <button data-action="fail" data-id="${o.id}">Fail</button>
+                    <button data-action="lost" data-id="${o.id}">Lost</button>`;
+            } else if (statusNorm === 'InProgress') {
+                actionHtml = `
+                    <button data-action="store" data-id="${o.id}">Store</button>
+                    <button data-action="deliver" data-id="${o.id}">Make delivery</button>
+                    <button data-action="fail" data-id="${o.id}">Fail</button>
+                    <button data-action="lost" data-id="${o.id}">Lost</button>`;
             } else {
-                actionHtml = '<span>Delivered</span>';
+                actionHtml = '<span>—</span>';
             }
-            html += `<tr><td>${o.id}</td><td>${o.description}</td><td>${status}</td><td>${actionHtml}</td></tr>`;
+
+            html += `<tr><td>${o.id}</td><td>${o.description}</td><td>${statusNorm}</td><td>${actionHtml}</td></tr>`;
         }
         html += '</tbody></table>';
         orderListDiv.innerHTML = html;
@@ -73,9 +189,20 @@
                 const action = b.getAttribute('data-action');
                 try {
                     if (action === 'take') {
-                        take_order(id);
+                        await take_order(id);
                     } else if (action === 'deliver') {
-                        deliver_order(id);
+                        await make_delivery(id);
+                    } else if (action === 'store') {
+                        const loc = prompt('Enter location id to store at:');
+                        if (loc) await store_delivery(id, parseInt(loc, 10), null);
+                    } else if (action === 'continue') {
+                        await continue_delivery(id, null);
+                    } else if (action === 'fail') {
+                        const comment = prompt('Reason (optional):') || null;
+                        await fail_delivery(id, comment);
+                    } else if (action === 'lost') {
+                        const comment = prompt('Note (optional):') || null;
+                        await lose_delivery(id, comment);
                     }
                     // Re-render after state change
                     render();
@@ -86,24 +213,114 @@
         });
 
         // Status summary
-        const delivered = deliveries.filter(d => d.status === 'delivered').length;
-        const pending = deliveries.filter(d => d.status !== 'delivered').length;
+        const delivered = deliveries.filter(d => String(d.status).toUpperCase() === 'COMPLETE').length;
+        const pending = deliveries.filter(d => String(d.status).toUpperCase() !== 'COMPLETE').length;
         statusDiv.textContent = `Pending: ${pending}, Delivered: ${delivered}`;
     }
 
+    async function seedData() {
+        try {
+            const [districts, locations, categories, orders] = await Promise.all([
+                fetch('./data/districts.json').then(r => r.json()),
+                fetch('./data/locations.json').then(r => r.json()),
+                fetch('./data/delivery_categories.json').then(r => r.json()),
+                fetch('./data/orders.json').then(r => r.json()),
+            ]);
+            await import_districts(JSON.stringify(districts));
+            await import_locations(JSON.stringify(locations));
+            await import_delivery_categories(JSON.stringify(categories));
+            await import_orders(JSON.stringify(orders));
+            // Optional deliveries seed
+            try {
+                const deliveries = await fetch('./data/deliveries.json').then(r => r.ok ? r.json() : []);
+                if (deliveries && deliveries.length) {
+                    await import_deliveries(JSON.stringify(deliveries));
+                }
+            } catch {}
+            await set_schema_version('1');
+            setupFilters();
+            render();
+        } catch (e) {
+            console.error('Seeding failed', e);
+            alert('Failed to load demo data. See console for details.');
+        }
+    }
+
     init()
-        .then(() => {
+        .then(async () => {
             try {
                 initialize();
             } catch (e) {
                 console.error('initialize() failed', e);
             }
+            setupNav();
+            // If no schema version or no orders, offer seeding
+            const schema = (get_schema_version && get_schema_version()) || '';
+            const hasOrders = getOrders().length > 0;
+            const btn = document.getElementById('btn-seed');
+            if (btn) btn.addEventListener('click', seedData);
+            if (!schema || !hasOrders) {
+                const banner = document.getElementById('seed-banner');
+                if (banner) banner.hidden = false;
+            }
+            setupFilters();
             render();
         })
         .catch(err => {
             console.error('WASM init failed', err);
             orderListDiv.textContent = 'Failed to initialize WASM module. See console for details.';
         });
+    function setupNav() {
+        function show(panelId) {
+            document.querySelectorAll('section[id^="panel-"]').forEach(sec => sec.hidden = true);
+            const el = document.getElementById(panelId);
+            if (el) el.hidden = false;
+        }
+        document.getElementById('tab-dashboard').addEventListener('click', () => show('panel-dashboard'));
+        document.getElementById('tab-orders').addEventListener('click', () => show('panel-orders'));
+        document.getElementById('tab-deliveries').addEventListener('click', () => show('panel-deliveries'));
+        document.getElementById('tab-locations').addEventListener('click', () => show('panel-locations'));
+        show('panel-orders');
+    }
+
+    function setupFilters() {
+        // Populate selects from storage via WASM getters (they return JSON strings)
+        try {
+            const districts = JSON.parse(get_districts());
+            for (const d of districts) {
+                const opt = document.createElement('option');
+                opt.value = String(d.id);
+                opt.textContent = d.name;
+                filterDistrict.appendChild(opt);
+            }
+        } catch {}
+        try {
+            const locations = JSON.parse(get_locations());
+            for (const l of locations) {
+                const opt1 = document.createElement('option');
+                opt1.value = String(l.id);
+                opt1.textContent = l.name;
+                filterClient.appendChild(opt1.cloneNode(true));
+                const opt2 = document.createElement('option');
+                opt2.value = String(l.id);
+                opt2.textContent = l.name;
+                filterDestination.appendChild(opt2);
+            }
+        } catch {}
+        try {
+            const cats = JSON.parse(get_delivery_categories());
+            for (const c of cats) {
+                const opt = document.createElement('option');
+                opt.value = String(c.id);
+                opt.textContent = c.name;
+                filterCategory.appendChild(opt);
+            }
+        } catch {}
+        const onChange = () => render();
+        [filterDistrict, filterClient, filterDestination, filterCategory, filterSearch].forEach(el => el.addEventListener('change', onChange));
+        document.querySelectorAll('input[name="status"]').forEach(el => el.addEventListener('change', onChange));
+        document.querySelectorAll('input[name="completion"]').forEach(el => el.addEventListener('change', onChange));
+    }
 </script>
 
 </body>

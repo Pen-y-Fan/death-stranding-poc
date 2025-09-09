@@ -37,13 +37,13 @@ Contents
 
 ## Dashboard
 
-- After login you land on the App dashboard.
+- After login, you land on the App dashboard.
 - Default widgets for the dashboard:
     - Account panel information (profile and logout via the user menu)
 - Additional App charts you may see on dashboard:
     - Orders doughnut chart
-    - Complete orders central A to E Chart, 
-    - Complete orders central F to M Chart, 
+    - Complete orders central A to E Chart,
+    - Complete orders central F to M Chart,
     - Complete orders central N to W Chart
     - Complete orders East Chart
 
@@ -54,8 +54,8 @@ Path: /orders
 Views available
 
 - List: Table of orders with sortable/searchable columns, filters, and per‑row actions.
-  - Act on orders as a player (take, store, continue, complete), and track personal progress.
-    orders (taking, storeing, completing). The order is immutable, when a play acts on an order a delivery is created.
+    - Act on orders as a player (take, store, continue, complete), and track personal progress.
+      orders (taking, storing, completing). The order is immutable, when a play acts on an order a delivery is created.
 - View: Read‑only details for a single order, plus widgets (OrdersOverview) and related data.
 - Edit: No option to edit orders.
 - Create: No option to edit orders.
@@ -161,8 +161,10 @@ Create/Edit delivery form fields
 - Pagination: Use the paginator at the bottom to switch pages; adjust per‑page size if available.
 - Bulk actions:
     - Orders: Accept and Complete (bulk) actions are available using checkboxes to select multiple rows.
-      - Bulk Accept: Creates a delivery of each selected orders as InProgress (only if there are no existing deliveries in progress).
-      - Bulk Complete: Marks selected orders.delivery as COMPLETE (even if no delivery exists, create a completed one, if one exists amend it to complete).
+        - Bulk Accept: Creates a delivery of each selected orders as InProgress (only if there are no existing
+          deliveries in progress).
+        - Bulk Complete: Marks selected orders.delivery as COMPLETE (even if no delivery exists, create a completed one,
+          if one exists amend it to complete).
     - Deliveries: Bulk Delete is available.
 
 ## Navigating between related records (links and tabs)
@@ -173,6 +175,19 @@ Create/Edit delivery form fields
 - From Order → Locations/Districts: open the destination or client Location by clicking its name; from the Location you
   can proceed to its District where applicable.
 - Breadcrumbs: Use the breadcrumb trail at the top to return to resource lists or parent pages.
+
+## Deliveries of orders
+
+- An order can have multiple deliveries, each delivery has a status.
+  - "In Progress" only one delivery per order can be "In progress" (or Stored) at a time. 
+  - "Stored" (i.e. placed in a private locker at a distribution center) at a time.
+      - A stored delivery can be continued (changed back to "In progress").
+  - "Lost" and "Failed" can fail the delivery, e.g. if cargo is damaged or stolen.
+  - "Complete" is the final status of a delivered order.
+- Once a delivery is completed, lost or failed, a new delivery for the same order can be taken.
+- A complete delivery of an order always counts towards game completion.
+- When filtering by status (e.g., "In progress"), an order will be shown if it has any delivery matching that status.
+  even if it also has deliveries with other statuses (e.g., "Complete").
 
 ## Tips and conventions
 

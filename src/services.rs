@@ -86,23 +86,41 @@ pub fn current_user_status_and_completed(
     order_number: u32,
     deliveries: &[Delivery],
 ) -> (Option<DeliveryStatus>, bool) {
-    let mut status: Option<DeliveryStatus> = None;
-    let mut completed = false;
+    let mut has_complete = bool::default();
+    let mut has_failed = bool::default();
+    let mut has_lost = bool::default();
+    let mut active_status: Option<DeliveryStatus> = None;
+
     for d in deliveries.iter().filter(|d| d.order_number == order_number) {
         if let Some(uid) = d.user_id {
             if uid != 1 {
-                // current PoC user id
-                continue;
+                continue; // only current PoC user
             }
-        } else {
-            // If user_id missing, assume it belongs to current user in this PoC
         }
-        status = Some(d.status.clone());
-        if matches!(d.status, DeliveryStatus::COMPLETE) {
-            completed = true;
+        match d.status {
+            DeliveryStatus::InProgress | DeliveryStatus::STORED => {
+                // prefer showing active if any
+                active_status = Some(d.status.clone());
+            }
+            DeliveryStatus::COMPLETE => has_complete = true,
+            DeliveryStatus::FAILED => has_failed = true,
+            DeliveryStatus::LOST => has_lost = true,
         }
     }
-    (status, completed)
+
+    if let Some(s) = active_status {
+        return (Some(s), has_complete);
+    }
+    if has_complete {
+        return (Some(DeliveryStatus::COMPLETE), true);
+    }
+    if has_failed {
+        return (Some(DeliveryStatus::FAILED), false);
+    }
+    if has_lost {
+        return (Some(DeliveryStatus::LOST), false);
+    }
+    (None, false)
 }
 
 pub fn filter_orders<'a>(
