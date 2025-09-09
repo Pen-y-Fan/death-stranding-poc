@@ -4,6 +4,7 @@ use wasm_bindgen::prelude::*;
 use web_sys::{Storage, window};
 
 pub mod models;
+pub mod services;
 
 // Storage keys (namespaced)
 const KEY_SCHEMA_VERSION: &str = "ds:schema_version";
@@ -548,4 +549,76 @@ pub fn bulk_complete(order_numbers: Vec<u32>) -> Result<String, String> {
 #[cfg(target_arch = "wasm32")]
 fn local_storage() -> Storage {
     window().unwrap().local_storage().unwrap().unwrap()
+}
+
+// ---------- Query services (filter/sort/search) ----------
+#[cfg(target_arch = "wasm32")]
+fn load_locations_from_storage() -> Vec<models::Location> {
+    if let Ok(Some(s)) = local_storage().get_item(KEY_LOCATIONS) {
+        serde_json::from_str(&s).unwrap_or_default()
+    } else {
+        Vec::new()
+    }
+}
+
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+pub fn query_orders(
+    filter_json: Option<String>,
+    page: u32,
+    per_page: u32,
+    sort_key: Option<String>,
+    sort_dir: Option<String>,
+    search: Option<String>,
+) -> String {
+    use crate::services::{
+        OrdersFilter, QueryResult, SortDir, SortKey, map_orders_to_list_items, paginate,
+        search_orders, sort_orders,
+    };
+
+    // Load data only in wasm builds; native builds return empty result to keep cfg clean
+    #[cfg(target_arch = "wasm32")]
+    {
+        let orders = load_orders_from_storage();
+        let deliveries = load_deliveries_from_storage();
+        let locations = load_locations_from_storage();
+
+        let mut filter: OrdersFilter = match filter_json.as_ref() {
+            Some(s) if !s.is_empty() => serde_json::from_str(s).unwrap_or_default(),
+            _ => OrdersFilter::default(),
+        };
+        // In case we later add defaults, ensure deserialization didn't leave filter uninitialized
+        let filtered_refs = services::filter_orders(&orders, &deliveries, &locations, &filter);
+        let filtered_orders: Vec<models::Order> = filtered_refs.into_iter().cloned().collect();
+        let mut list = map_orders_to_list_items(&filtered_orders, &deliveries);
+
+        // Sorting
+        let key = match sort_key.as_deref() {
+            Some("name") => SortKey::Name,
+            Some("weight") => SortKey::Weight,
+            Some("max_likes") => SortKey::MaxLikes,
+            _ => SortKey::Number,
+        };
+        let dir = match sort_dir.as_deref() {
+            Some("desc") => SortDir::Desc,
+            _ => SortDir::Asc,
+        };
+        sort_orders(&mut list, key, dir);
+
+        // Search
+        let list = if let Some(q) = search {
+            search_orders(&list, &q)
+        } else {
+            list
+        };
+
+        // Pagination
+        let (total, items) = paginate(&list, page.max(1), per_page.max(1));
+        let result = QueryResult { total, items };
+        return serde_json::to_string(&result)
+            .unwrap_or_else(|_| "{\"total\":0,\"items\":[]}".into());
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        return "{\"total\":0,\"items\":[]}".into();
+    }
 }
