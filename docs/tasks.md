@@ -91,7 +91,7 @@ JSON files for Orders, Locations, etc.).
     2. [x] Add a manual deployment note in README for GitHub Pages settings.
     3. [x] Post-deploy smoke checklist: load page, verify pkg/death_stranding_poc.js exists, actions function.
 
-13. [ ] Required data (you can supply these as JSON files) (available in `data/*.json`)
+13. [x] Required data (you can supply these as JSON files) (available in `data/*.json`)
     1. [x] districts.json: list of Districts with region names (East/Central/West).
     2. [x] locations.json: Facilities with district_id and is_physical flag.
     3. [x] delivery_categories.json: Category taxonomy.
@@ -109,10 +109,10 @@ JSON files for Orders, Locations, etc.).
     2. [x] Add brief API docs for exposed WASM functions.
     3. [x] Link to docs/manual-user.md and docs/description.md from README.
 
-16. [ ] Performance and size (PoC-appropriate)
-    1. [ ] Keep web-sys features minimal; audit features if adding new APIs.
-    2. [ ] Release builds with wasm-opt (if available via wasm-pack) for smaller payloads.
+16. [x] Performance and size (PoC-appropriate)
+    1. [x] Keep web-sys features minimal; audit features if adding new APIs.
+    2. [x] Release builds with wasm-opt (if available via wasm-pack) for smaller payloads.
 
-17. [ ] Accessibility and UX basics (PoC scope)
-    1. [ ] Ensure buttons have accessible labels; keyboard navigation for list actions.
-    2. [ ] Provide minimal ARIA roles for tables and status summaries.
+17. [x] Accessibility and UX basics (PoC scope)
+    1. [x] Ensure buttons have accessible labels; keyboard navigation for list actions.
+    2. [x] Provide minimal ARIA roles for tables and status summaries.
