@@ -146,6 +146,44 @@ pub fn get_locations() -> String {
 }
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+pub fn get_location(id: u32) -> String {
+    #[cfg(target_arch = "wasm32")]
+    {
+        if let Ok(Some(s)) = local_storage().get_item(KEY_LOCATIONS) {
+            if let Ok(list) = serde_json::from_str::<Vec<models::Location>>(&s) {
+                if let Some(loc) = list.into_iter().find(|l| l.id == id) {
+                    return serde_json::to_string(&loc).unwrap_or_else(|_| "{}".into());
+                }
+            }
+        }
+        return "{}".into();
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        return "{}".into();
+    }
+}
+
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+pub fn get_district(id: u32) -> String {
+    #[cfg(target_arch = "wasm32")]
+    {
+        if let Ok(Some(s)) = local_storage().get_item(KEY_DISTRICTS) {
+            if let Ok(list) = serde_json::from_str::<Vec<models::District>>(&s) {
+                if let Some(d) = list.into_iter().find(|d| d.id == id) {
+                    return serde_json::to_string(&d).unwrap_or_else(|_| "{}".into());
+                }
+            }
+        }
+        return "{}".into();
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        return "{}".into();
+    }
+}
+
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub fn get_delivery_categories() -> String {
     #[cfg(target_arch = "wasm32")]
     {
@@ -565,10 +603,19 @@ fn local_storage() -> Storage {
     window().unwrap().local_storage().unwrap().unwrap()
 }
 
-// ---------- Query services (filter/sort/search) ----------
+// ---------- Query and Summary services ----------
 #[cfg(target_arch = "wasm32")]
 fn load_locations_from_storage() -> Vec<models::Location> {
     if let Ok(Some(s)) = local_storage().get_item(KEY_LOCATIONS) {
+        serde_json::from_str(&s).unwrap_or_default()
+    } else {
+        Vec::new()
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+fn load_districts_from_storage() -> Vec<models::District> {
+    if let Ok(Some(s)) = local_storage().get_item(KEY_DISTRICTS) {
         serde_json::from_str(&s).unwrap_or_default()
     } else {
         Vec::new()
@@ -634,5 +681,23 @@ pub fn query_orders(
     #[cfg(not(target_arch = "wasm32"))]
     {
         return "{\"total\":0,\"items\":[]}".into();
+    }
+}
+
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+pub fn get_dashboard_summary() -> String {
+    #[cfg(target_arch = "wasm32")]
+    {
+        let orders = load_orders_from_storage();
+        let deliveries = load_deliveries_from_storage();
+        let locations = load_locations_from_storage();
+        let districts = load_districts_from_storage();
+        let summary =
+            services::compute_dashboard_summary(&orders, &deliveries, &locations, &districts);
+        return serde_json::to_string(&summary).unwrap_or_else(|_| "{}".into());
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        return "{}".into();
     }
 }

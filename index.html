@@ -10,7 +10,6 @@
     <button id="tab-dashboard" aria-controls="panel-dashboard">Dashboard</button>
     <button id="tab-orders" aria-controls="panel-orders">Orders</button>
     <button id="tab-deliveries" aria-controls="panel-deliveries">Deliveries</button>
-    <button id="tab-locations" aria-controls="panel-locations">Locations</button>
 </nav>
 
 <section id="panel-dashboard" hidden>
@@ -23,16 +22,24 @@
     <fieldset>
         <legend>Filters</legend>
         <label>District
-            <select id="filter-district"><option value="">All</option></select>
+            <select id="filter-district">
+                <option value="">All</option>
+            </select>
         </label>
         <label>Client
-            <select id="filter-client"><option value="">All</option></select>
+            <select id="filter-client">
+                <option value="">All</option>
+            </select>
         </label>
         <label>Destination
-            <select id="filter-destination"><option value="">All</option></select>
+            <select id="filter-destination">
+                <option value="">All</option>
+            </select>
         </label>
         <label>Category
-            <select id="filter-category"><option value="">All</option></select>
+            <select id="filter-category">
+                <option value="">All</option>
+            </select>
         </label>
         <fieldset>
             <legend>Delivery Status</legend>
@@ -59,7 +66,8 @@
         <!-- Orders will be dynamically added here -->
     </div>
     <div id="orders-pagination"></div>
-    <div id="seed-banner" role="alert" style="margin: 1rem 0; padding: .75rem; border: 1px solid #ccc; background: #fffbdd;">
+    <div id="seed-banner" role="alert"
+         style="margin: 1rem 0; padding: .75rem; border: 1px solid #ccc; background: #fffbdd;">
         No data found. Click "Load demo data" to import sample Orders, Locations, Districts and Categories for this PoC.
         <button id="btn-seed" type="button">Load demo data</button>
     </div>
@@ -70,13 +78,28 @@
     <div id="delivery-status" role="status" aria-live="polite"></div>
 </section>
 
-<section id="panel-locations" hidden>
-    <h1>Locations</h1>
-    <div id="locations-list"></div>
-</section>
-
 <script type="module">
-    import init, { initialize, take_order, make_delivery, store_delivery, continue_delivery, fail_delivery, lose_delivery, query_orders, get_districts, get_locations, get_delivery_categories, import_districts, import_locations, import_delivery_categories, import_orders, import_deliveries, get_schema_version, set_schema_version } from './pkg/death_stranding_poc.js';
+    import init, {
+        initialize,
+        take_order,
+        make_delivery,
+        store_delivery,
+        continue_delivery,
+        fail_delivery,
+        lose_delivery,
+        query_orders,
+        get_districts,
+        get_locations,
+        get_delivery_categories,
+        import_districts,
+        import_locations,
+        import_delivery_categories,
+        import_orders,
+        import_deliveries,
+        get_schema_version,
+        set_schema_version,
+        get_dashboard_summary
+    } from './pkg/death_stranding_poc.js';
 
     const orderListDiv = document.getElementById('order-list');
     const statusDiv = document.getElementById('delivery-status');
@@ -124,16 +147,28 @@
         if (completionVal) f.completion = completionVal === 'true';
         const json = query_orders(JSON.stringify(f), 1, 20, 'number', 'asc', searchVal);
         let parsed;
-        try { parsed = JSON.parse(json); } catch(e) { parsed = { total: 0, items: [] }; }
+        try {
+            parsed = JSON.parse(json);
+        } catch (e) {
+            parsed = {total: 0, items: []};
+        }
         const items = parsed.items || [];
         const orders = getOrders();
         const deliveries = getDeliveries();
 
         // Build a simple table
+        const locationsList = (() => {
+            try {
+                return JSON.parse(get_locations());
+            } catch {
+                return [];
+            }
+        })();
+        const byId = new Map(locationsList.map(l => [l.id, l]));
         let html = '<table border="1" cellpadding="6" cellspacing="0" role="grid">';
-        html += '<thead><tr><th scope="col">#</th><th scope="col">Name</th><th scope="col">Status</th><th scope="col">Action</th></tr></thead><tbody>';
+        html += '<thead><tr><th scope="col">#</th><th scope="col">Name</th><th scope="col">Client</th><th scope="col">Destination</th><th scope="col">Status</th><th scope="col">Action</th></tr></thead><tbody>';
         for (const it of items) {
-            const o = { id: it.number, description: it.name };
+            const o = {id: it.number, description: it.name};
             const deliveriesLocal = getDeliveries();
             const dels = deliveriesLocal.filter(dd => (dd.order_number ?? dd.order_id) === o.id);
             const norm = (s) => {
@@ -153,9 +188,14 @@
 
             const statusNorm = active ? norm(active.status)
                 : hasComplete ? 'COMPLETE'
-                : hasFailed ? 'FAILED'
-                : hasLost ? 'LOST'
-                : 'not_taken';
+                    : hasFailed ? 'FAILED'
+                        : hasLost ? 'LOST'
+                            : 'not_taken';
+
+            const client = byId.get(it.client_id);
+            const destination = byId.get(it.destination_id);
+            const clientCell = client ? `<a href="#" data-show-location="${client.id}" data-kind="client">${client.name}</a>` : '';
+            const destCell = destination ? `<a href="#" data-show-location="${destination.id}" data-kind="destination">${destination.name}</a>` : '';
 
             let actionHtml = '';
             if (!active) {
@@ -176,7 +216,7 @@
                 actionHtml = '<span>—</span>';
             }
 
-            html += `<tr><td>${o.id}</td><td>${o.description}</td><td>${statusNorm}</td><td>${actionHtml}</td></tr>`;
+            html += `<tr><td>${o.id}</td><td>${o.description}</td><td>${clientCell}</td><td>${destCell}</td><td>${statusNorm}</td><td>${actionHtml}</td></tr>`;
         }
         html += '</tbody></table>';
         orderListDiv.innerHTML = html;
@@ -212,10 +252,62 @@
             });
         });
 
+        // Click client/destination to filter Orders list instead of navigating
+        orderListDiv.querySelectorAll('a[data-show-location]')?.forEach(a => {
+            a.addEventListener('click', (ev) => {
+                ev.preventDefault();
+                const id = parseInt(ev.currentTarget.getAttribute('data-show-location'), 10);
+                const kind = ev.currentTarget.getAttribute('data-kind') || 'client';
+                // Enforce physical locations only for filter selection
+                const loc = byId.get(id);
+                if (!loc || loc.is_physical !== true) {
+                    alert('This location is not a physical facility and cannot be used as a filter.');
+                    return;
+                }
+                if (kind === 'client') {
+                    filterClient.value = String(id);
+                    filterDestination.value = '';
+                } else {
+                    filterDestination.value = String(id);
+                    filterClient.value = '';
+                }
+                // Ensure Orders tab is shown and update switch button
+                const ordersTab = document.getElementById('tab-orders');
+                if (ordersTab) ordersTab.click();
+                updateSwitchButton();
+                render();
+            });
+        });
+
         // Status summary
         const delivered = deliveries.filter(d => String(d.status).toUpperCase() === 'COMPLETE').length;
         const pending = deliveries.filter(d => String(d.status).toUpperCase() !== 'COMPLETE').length;
         statusDiv.textContent = `Pending: ${pending}, Delivered: ${delivered}`;
+    }
+
+    function renderDashboard() {
+        const el = document.getElementById('dashboard-summary');
+        if (!el) return;
+        try {
+            const json = get_dashboard_summary();
+            const s = JSON.parse(json || '{}');
+            const html = `
+                <div role="group" aria-label="Completion summary">
+                    <p><strong>East:</strong> ${s.east ?? 0}</p>
+                    <p><strong>Central total:</strong> ${s.central_total ?? 0}</p>
+                    <ul>
+                        <li>A–E: ${s.central_ae ?? 0}</li>
+                        <li>F–M: ${s.central_fm ?? 0}</li>
+                        <li>N–W: ${s.central_nw ?? 0}</li>
+                    </ul>
+                    <p><strong>West:</strong> ${s.west ?? 0}</p>
+                </div>
+            `;
+            el.innerHTML = html;
+        } catch (e) {
+            console.error('Failed to render dashboard summary', e);
+            el.textContent = 'No summary available.';
+        }
     }
 
     async function seedData() {
@@ -236,7 +328,8 @@
                 if (deliveries && deliveries.length) {
                     await import_deliveries(JSON.stringify(deliveries));
                 }
-            } catch {}
+            } catch {
+            }
             await set_schema_version('1');
             setupFilters();
             render();
@@ -265,22 +358,68 @@
             }
             setupFilters();
             render();
+            renderDashboard();
         })
         .catch(err => {
             console.error('WASM init failed', err);
             orderListDiv.textContent = 'Failed to initialize WASM module. See console for details.';
         });
+
     function setupNav() {
         function show(panelId) {
             document.querySelectorAll('section[id^="panel-"]').forEach(sec => sec.hidden = true);
             const el = document.getElementById(panelId);
             if (el) el.hidden = false;
+            if (panelId === 'panel-dashboard') renderDashboard();
+            if (panelId === 'panel-orders') render();
         }
+
         document.getElementById('tab-dashboard').addEventListener('click', () => show('panel-dashboard'));
         document.getElementById('tab-orders').addEventListener('click', () => show('panel-orders'));
         document.getElementById('tab-deliveries').addEventListener('click', () => show('panel-deliveries'));
-        document.getElementById('tab-locations').addEventListener('click', () => show('panel-locations'));
         show('panel-orders');
+    }
+
+    function updateSwitchButton() {
+        // Create or update the dynamic switch button depending on active client/destination filter
+        const filtersFieldset = document.querySelector('#panel-orders fieldset');
+        if (!filtersFieldset) return;
+        let container = document.getElementById('orders-switch-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'orders-switch-container';
+            container.style.marginTop = '.5rem';
+            filtersFieldset.appendChild(container);
+        }
+        const hasClient = !!filterClient.value;
+        const hasDest = !!filterDestination.value;
+        if (!hasClient && !hasDest) {
+            container.innerHTML = '';
+            return;
+        }
+        const btnId = 'btn-switch-client-destination';
+        let btn = document.getElementById(btnId);
+        const label = hasClient ? 'Switch to Destination for this location' : 'Switch to Client for this location';
+        if (!btn) {
+            btn = document.createElement('button');
+            btn.id = btnId;
+            btn.type = 'button';
+            btn.addEventListener('click', () => {
+                if (filterClient.value) {
+                    const id = filterClient.value;
+                    filterClient.value = '';
+                    filterDestination.value = id;
+                } else if (filterDestination.value) {
+                    const id = filterDestination.value;
+                    filterDestination.value = '';
+                    filterClient.value = id;
+                }
+                updateSwitchButton();
+                render();
+            });
+            container.appendChild(btn);
+        }
+        btn.textContent = label;
     }
 
     function setupFilters() {
@@ -293,9 +432,10 @@
                 opt.textContent = d.name;
                 filterDistrict.appendChild(opt);
             }
-        } catch {}
+        } catch {
+        }
         try {
-            const locations = JSON.parse(get_locations());
+            const locations = (JSON.parse(get_locations()) || []).filter(l => l && l.is_physical === true);
             for (const l of locations) {
                 const opt1 = document.createElement('option');
                 opt1.value = String(l.id);
@@ -306,7 +446,8 @@
                 opt2.textContent = l.name;
                 filterDestination.appendChild(opt2);
             }
-        } catch {}
+        } catch {
+        }
         try {
             const cats = JSON.parse(get_delivery_categories());
             for (const c of cats) {
@@ -315,11 +456,16 @@
                 opt.textContent = c.name;
                 filterCategory.appendChild(opt);
             }
-        } catch {}
-        const onChange = () => render();
+        } catch {
+        }
+        const onChange = () => {
+            updateSwitchButton();
+            render();
+        };
         [filterDistrict, filterClient, filterDestination, filterCategory, filterSearch].forEach(el => el.addEventListener('change', onChange));
         document.querySelectorAll('input[name="status"]').forEach(el => el.addEventListener('change', onChange));
         document.querySelectorAll('input[name="completion"]').forEach(el => el.addEventListener('change', onChange));
+        updateSwitchButton();
     }
 </script>
 

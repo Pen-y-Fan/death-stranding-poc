@@ -1,4 +1,4 @@
-use crate::models::{Delivery, DeliveryStatus, Location, Order};
+use crate::models::{Delivery, DeliveryStatus, District, Location, Order, Region};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
@@ -263,4 +263,77 @@ pub fn paginate<T: Clone>(items: &[T], page: u32, per_page: u32) -> (usize, Vec<
         return (total, Vec::new());
     }
     (total, items[start..end].to_vec())
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct DashboardSummary {
+    pub central_total: u32,
+    pub central_ae: u32,
+    pub central_fm: u32,
+    pub central_nw: u32,
+    pub east: u32,
+    pub west: u32,
+}
+
+/// Compute summary of COMPLETED deliveries grouped by destination region and Central subgroups by destination location name.
+/// Counting logic:
+/// - A delivery counts if its status == COMPLETE.
+/// - It is attributed to the order's destination Location, then to that Location's District.region.
+/// - For Central region, further bucket by destination Location name first letter: A–E, F–M, N–W (case-insensitive).
+pub fn compute_dashboard_summary(
+    orders: &[Order],
+    deliveries: &[Delivery],
+    locations: &[Location],
+    districts: &[District],
+) -> DashboardSummary {
+    use std::collections::HashMap;
+
+    let loc_by_id: HashMap<u32, &Location> = locations.iter().map(|l| (l.id, l)).collect();
+    let dist_by_id: HashMap<u32, &District> = districts.iter().map(|d| (d.id, d)).collect();
+    let order_by_num: HashMap<u32, &Order> = orders.iter().map(|o| (o.number, o)).collect();
+
+    let mut out = DashboardSummary::default();
+
+    for d in deliveries.iter() {
+        if d.status != DeliveryStatus::COMPLETE {
+            continue;
+        }
+        let Some(order) = order_by_num.get(&d.order_number) else {
+            continue;
+        };
+        let Some(loc) = loc_by_id.get(&order.destination_id) else {
+            continue;
+        };
+        let Some(dist) = dist_by_id.get(&loc.district_id) else {
+            continue;
+        };
+        match dist.region {
+            Region::East => {
+                out.east += 1;
+            }
+            Region::West => {
+                out.west += 1;
+            }
+            Region::Central => {
+                out.central_total += 1;
+                // Group by first letter of location name
+                let first = loc
+                    .name
+                    .chars()
+                    .find(|c| c.is_alphabetic())
+                    .map(|c| c.to_ascii_uppercase());
+                if let Some(ch) = first {
+                    if ('A'..='E').contains(&ch) {
+                        out.central_ae += 1;
+                    } else if ('F'..='M').contains(&ch) {
+                        out.central_fm += 1;
+                    } else if ('N'..='W').contains(&ch) {
+                        out.central_nw += 1;
+                    }
+                }
+            }
+        }
+    }
+
+    out
 }
