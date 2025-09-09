@@ -163,7 +163,7 @@
             }
         })();
         const byId = new Map(locationsList.map(l => [l.id, l]));
-        let html = '<table role="grid" aria-label="Orders list">';
+        let html = '<table border="1" cellpadding="6" cellspacing="0" role="grid" aria-label="Orders list">';
         html += '<thead><tr><th scope="col">#</th><th scope="col">Name</th><th scope="col">Client</th><th scope="col">Destination</th><th scope="col">Status</th><th scope="col">Action</th></tr></thead><tbody>';
         for (const it of items) {
             const o = {id: it.number, description: it.name};
