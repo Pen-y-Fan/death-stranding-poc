@@ -40,17 +40,17 @@ JSON files for Orders, Locations, etc.).
     3. [x] Implement JSON export/backup for deliveries per user.
     4. [x] Add versioning key in storage to handle migrations (e.g., schema_version).
 
-5. [ ] Business logic for deliveries (user actions)
-    1. [ ] take_order(number): create InProgress delivery if the user has no active or stored delivery for that order.
-    2. [ ] store_delivery(number, location_id, comment?): set status to STORED with location.
-    3. [ ] continue_delivery(number, comment?): move STORED → InProgress.
-    4. [ ] make_delivery(number): set COMPLETE, ended_at=now, move cargo to client location.
-    5. [ ] fail_delivery(number, comment?): set FAILED and move cargo to destination.
-    6. [ ] lose_delivery(number, comment?): set LOST.
-    7. [ ] Bulk actions:
-        - [ ] bulk_accept(order_numbers[]): create InProgress deliveries where none in-progress exist.
-        - [ ] bulk_complete(order_numbers[]): if no delivery exists, create COMPLETE; if exists, set COMPLETE.
-    8. [ ] Enforce status transition rules and edge cases; record timestamps in Europe/London (or user tz when
+5. [x] Business logic for deliveries (user actions)
+    1. [x] take_order(number): create InProgress delivery if the user has no active or stored delivery for that order.
+    2. [x] store_delivery(number, location_id, comment?): set status to STORED with location.
+    3. [x] continue_delivery(number, comment?): move STORED → InProgress.
+    4. [x] make_delivery(number): set COMPLETE, ended_at=now, move cargo to client location.
+    5. [x] fail_delivery(number, comment?): set FAILED and move cargo to destination.
+    6. [x] lose_delivery(number, comment?): set LOST.
+    7. [x] Bulk actions:
+        - [x] bulk_accept(order_numbers[]): create InProgress deliveries where none in-progress exist.
+        - [x] bulk_complete(order_numbers[]): if no delivery exists, create COMPLETE; if exists, set COMPLETE.
+    8. [x] Enforce status transition rules and edge cases; record timestamps in Europe/London (or user tz when
        available).
 
 6. [ ] Filtering, sorting, and search (data services)
