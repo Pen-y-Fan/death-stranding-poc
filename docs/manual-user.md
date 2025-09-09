@@ -31,7 +31,7 @@ Contents
     - Dashboard
     - Orders
     - Deliveries
-    - Locations
+    - Settings
 - Color palette (for context): primary = Indigo; success = Emerald; warning = Orange; danger = Rose; info = Blue; gray =
   Gray.
 

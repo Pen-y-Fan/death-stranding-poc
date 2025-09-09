@@ -66,13 +66,14 @@ JSON files for Orders, Locations, etc.).
     4. [x] Add basic filters UI to Orders: dropdowns for District/Client/Destination/Category, radio for Delivery Status
        and Completion.
 
-8. [ ] Charts and dashboard (optional PoC scope)
-    1. [ ] Provide WASM-exposed summary endpoints for counts by region and location groups (Central A–E/F–M/N–W; East).
-    2. [ ] Render simple doughnut/progress charts in JS (or text summaries as PoC).
+8. [x] Charts and dashboard (optional PoC scope)
+    1. [x] Provide WASM-exposed summary endpoints for counts by region and location groups (Central A–E/F–M/N–W; East).
+    2. [x] Render simple doughnut/progress charts in JS (or text summaries as PoC).
 
-9. [ ] Navigation between related records
-    1. [ ] Provide WASM data lookups for relation expansion (e.g., get_location(id), get_district(id)).
-    2. [ ] Update UI to make client/destination clickable to open related info panel.
+9. [x] Navigation between related records
+    1. [x] Provide WASM data lookups for relation expansion (e.g., get_location(id), get_district(id)).
+    2. [x] Update UI to make client/destination clickable to filter by client/destination.
+    3. [x] Locations: add button to swap client/destination filter.
 
 10. [ ] Validation and error handling
     1. [ ] Validate inputs on all WASM-exposed functions; return Result-like error strings across the boundary.
