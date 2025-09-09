@@ -6,6 +6,9 @@ use web_sys::{Storage, window};
 pub mod models;
 pub mod services;
 
+#[cfg(test)]
+mod tests;
+
 // Storage keys (namespaced)
 const KEY_SCHEMA_VERSION: &str = "ds:schema_version";
 const KEY_DISTRICTS: &str = "ds:districts";
@@ -259,22 +262,22 @@ pub fn export_deliveries() -> String {
 
 // ---------- Business logic helpers (pure Rust) ----------
 fn now_iso_utc() -> String {
-    // We avoid timezone libs for native tests; use RFC3339 via chrono if added later.
-    // Here we construct a simple ISO8601 using js_sys when in wasm, else fallback to UTC from std.
+    // Store timestamps in ISO 8601 UTC for persistence; UI is responsible for display-timezone (Europe/London by default).
+    // Allow override for tests via env var DS_TEST_FIXED_TIMESTAMP on native builds.
     #[cfg(target_arch = "wasm32")]
     {
         use js_sys::Date;
+        // Date::to_iso_string() returns an ISO 8601 string in UTC
         return Date::new_0().to_iso_string().into();
     }
     #[cfg(not(target_arch = "wasm32"))]
     {
-        // Minimal UTC timestamp using std time; not including nanos for simplicity
-        use std::time::{SystemTime, UNIX_EPOCH};
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default();
-        // Format as seconds since epoch for determinism in tests; callers don't assert exact format.
-        format!("{}s", now.as_secs())
+        if let Ok(fixed) = std::env::var("DS_TEST_FIXED_TIMESTAMP") {
+            return fixed;
+        }
+        // Use chrono to format RFC3339 (ISO 8601) UTC
+        let now = chrono::Utc::now();
+        now.to_rfc3339()
     }
 }
 
