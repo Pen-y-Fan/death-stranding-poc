@@ -53,11 +53,11 @@ JSON files for Orders, Locations, etc.).
     8. [x] Enforce status transition rules and edge cases; record timestamps in Europe/London (or user tz when
        available).
 
-6. [ ] Filtering, sorting, and search (data services)
-    1. [ ] Implement pure-Rust filter functions for Orders by: District, Client, Destination, DeliveryCategory,
+6. [x] Filtering, sorting, and search (data services)
+    1. [x] Implement pure-Rust filter functions for Orders by: District, Client, Destination, DeliveryCategory,
        DeliveryStatus (for current user), Completion status.
-    2. [ ] Implement sort/search helpers (by number, name, weight, max_likes) to keep JS layer thin.
-    3. [ ] Provide WASM-exposed functions to query paginated/filtered lists suitable for a simple UI.
+    2. [x] Implement sort/search helpers (by number, name, weight, max_likes) to keep JS layer thin.
+    3. [x] Provide WASM-exposed functions to query paginated/filtered lists suitable for a simple UI.
 
 7. [ ] UI shell integration (index.html minimal enhancements)
     1. [ ] Replace placeholder table with functions that call new WASM APIs for lists and actions.
