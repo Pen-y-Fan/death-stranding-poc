@@ -59,11 +59,11 @@ JSON files for Orders, Locations, etc.).
     2. [x] Implement sort/search helpers (by number, name, weight, max_likes) to keep JS layer thin.
     3. [x] Provide WASM-exposed functions to query paginated/filtered lists suitable for a simple UI.
 
-7. [ ] UI shell integration (index.html minimal enhancements)
-    1. [ ] Replace placeholder table with functions that call new WASM APIs for lists and actions.
-    2. [ ] Add simple top navigation tabs: Dashboard, Orders, Deliveries, Locations (static HTML/JS).
-    3. [ ] Wire up per-row actions: Take, Store (with prompt for location/comment), Continue, Make delivery, Fail, Lost.
-    4. [ ] Add basic filters UI to Orders: dropdowns for District/Client/Destination/Category, radio for Delivery Status
+7. [x] UI shell integration (index.html minimal enhancements)
+    1. [x] Replace placeholder table with functions that call new WASM APIs for lists and actions.
+    2. [x] Add simple top navigation tabs: Dashboard, Orders, Deliveries, Locations (static HTML/JS).
+    3. [x] Wire up per-row actions: Take, Store (with prompt for location/comment), Continue, Make delivery, Fail, Lost.
+    4. [x] Add basic filters UI to Orders: dropdowns for District/Client/Destination/Category, radio for Delivery Status
        and Completion.
 
 8. [ ] Charts and dashboard (optional PoC scope)

@@ -282,6 +282,19 @@ fn get_mut_delivery<'a>(
         .find(|d| d.order_number == order_number)
 }
 
+fn get_active_delivery_mut<'a>(
+    deliveries: &'a mut [models::Delivery],
+    order_number: u32,
+) -> Option<&'a mut models::Delivery> {
+    deliveries.iter_mut().find(|d| {
+        d.order_number == order_number
+            && matches!(
+                d.status,
+                models::DeliveryStatus::InProgress | models::DeliveryStatus::STORED
+            )
+    })
+}
+
 fn make_new_delivery(order_number: u32, status: models::DeliveryStatus) -> models::Delivery {
     models::Delivery {
         id: order_number, // simple id for PoC; in real app use UUID/sequence
@@ -318,7 +331,7 @@ fn logic_store_delivery(
     location_id: u32,
     comment: Option<String>,
 ) -> Result<String, String> {
-    let d = get_mut_delivery(deliveries, order_number)
+    let d = get_active_delivery_mut(deliveries, order_number)
         .ok_or_else(|| "delivery not found".to_string())?;
     match d.status {
         models::DeliveryStatus::InProgress => {
@@ -338,7 +351,7 @@ fn logic_continue_delivery(
     order_number: u32,
     comment: Option<String>,
 ) -> Result<String, String> {
-    let d = get_mut_delivery(deliveries, order_number)
+    let d = get_active_delivery_mut(deliveries, order_number)
         .ok_or_else(|| "delivery not found".to_string())?;
     match d.status {
         models::DeliveryStatus::STORED => {
@@ -359,14 +372,15 @@ fn logic_make_delivery(
     order_number: u32,
 ) -> Result<String, String> {
     let order = find_order(orders, order_number).ok_or_else(|| "order not found".to_string())?;
-    let exists = get_mut_delivery(deliveries, order_number).is_some();
-    if !exists {
+    // Prefer completing the active delivery if present; otherwise create a new one
+    let active = get_active_delivery_mut(deliveries, order_number).is_some();
+    if !active {
         deliveries.push(make_new_delivery(
             order_number,
             models::DeliveryStatus::InProgress,
         ));
     }
-    let d = get_mut_delivery(deliveries, order_number).expect("delivery must exist");
+    let d = get_active_delivery_mut(deliveries, order_number).expect("delivery must exist");
     d.status = models::DeliveryStatus::COMPLETE;
     d.ended_at = Some(now_iso_utc());
     d.location_id = Some(order.client_id);
@@ -380,7 +394,7 @@ fn logic_fail_delivery(
     comment: Option<String>,
 ) -> Result<String, String> {
     let order = find_order(orders, order_number).ok_or_else(|| "order not found".to_string())?;
-    let d = get_mut_delivery(deliveries, order_number)
+    let d = get_active_delivery_mut(deliveries, order_number)
         .ok_or_else(|| "delivery not found".to_string())?;
     d.status = models::DeliveryStatus::FAILED;
     d.ended_at = Some(now_iso_utc());
@@ -396,7 +410,7 @@ fn logic_lose_delivery(
     order_number: u32,
     comment: Option<String>,
 ) -> Result<String, String> {
-    let d = get_mut_delivery(deliveries, order_number)
+    let d = get_active_delivery_mut(deliveries, order_number)
         .ok_or_else(|| "delivery not found".to_string())?;
     d.status = models::DeliveryStatus::LOST;
     d.ended_at = Some(now_iso_utc());
