@@ -75,9 +75,9 @@ JSON files for Orders, Locations, etc.).
     2. [x] Update UI to make client/destination clickable to filter by client/destination.
     3. [x] Locations: add button to swap client/destination filter.
 
-10. [ ] Validation and error handling
-    1. [ ] Validate inputs on all WASM-exposed functions; return Result-like error strings across the boundary.
-    2. [ ] Handle localStorage errors (quota, unavailable) gracefully.
+10. [x] Validation and error handling
+    1. [x] Validate inputs on all WASM-exposed functions; return Result-like error strings across the boundary.
+    2. [x] Handle localStorage errors (quota, unavailable) gracefully.
 
 11. [ ] Testing (native and wasm)
     1. [ ] Add native unit tests for pure logic (status transitions, filtering, sorting, validation).

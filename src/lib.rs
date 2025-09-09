@@ -39,7 +39,8 @@ fn alert(_s: &str) {}
 pub fn set_schema_version(version: &str) -> Result<(), String> {
     #[cfg(target_arch = "wasm32")]
     {
-        local_storage()
+        let storage = safe_local_storage()?;
+        storage
             .set_item(KEY_SCHEMA_VERSION, version)
             .map_err(|_| "failed to set schema_version".to_string())?;
         return Ok(());
@@ -52,11 +53,14 @@ pub fn set_schema_version(version: &str) -> Result<(), String> {
 pub fn get_schema_version() -> String {
     #[cfg(target_arch = "wasm32")]
     {
-        return local_storage()
-            .get_item(KEY_SCHEMA_VERSION)
-            .ok()
-            .flatten()
-            .unwrap_or_default();
+        return match safe_local_storage() {
+            Ok(s) => s
+                .get_item(KEY_SCHEMA_VERSION)
+                .ok()
+                .flatten()
+                .unwrap_or_default(),
+            Err(_) => String::new(),
+        };
     }
     String::new()
 }
@@ -70,7 +74,7 @@ pub fn import_districts(json: &str) -> Result<(), String> {
     let districts: Vec<models::District> = parse_json_vec(json)?;
     #[cfg(target_arch = "wasm32")]
     {
-        local_storage()
+        safe_local_storage()?
             .set_item(KEY_DISTRICTS, &serde_json::to_string(&districts).unwrap())
             .map_err(|_| "failed to persist districts".to_string())?;
         let _ = set_schema_version("1");
@@ -83,7 +87,7 @@ pub fn import_locations(json: &str) -> Result<(), String> {
     let locations: Vec<models::Location> = parse_json_vec(json)?;
     #[cfg(target_arch = "wasm32")]
     {
-        local_storage()
+        safe_local_storage()?
             .set_item(KEY_LOCATIONS, &serde_json::to_string(&locations).unwrap())
             .map_err(|_| "failed to persist locations".to_string())?;
         let _ = set_schema_version("1");
@@ -96,7 +100,7 @@ pub fn import_delivery_categories(json: &str) -> Result<(), String> {
     let cats: Vec<models::DeliveryCategory> = parse_json_vec(json)?;
     #[cfg(target_arch = "wasm32")]
     {
-        local_storage()
+        safe_local_storage()?
             .set_item(KEY_CATEGORIES, &serde_json::to_string(&cats).unwrap())
             .map_err(|_| "failed to persist delivery_categories".to_string())?;
         let _ = set_schema_version("1");
@@ -111,7 +115,7 @@ pub fn import_orders(json: &str) -> Result<(), String> {
     models::validate_orders(&orders)?;
     #[cfg(target_arch = "wasm32")]
     {
-        local_storage()
+        safe_local_storage()?
             .set_item(KEY_ORDERS, &serde_json::to_string(&orders).unwrap())
             .map_err(|_| "failed to persist orders".to_string())?;
         let _ = set_schema_version("1");
@@ -123,11 +127,14 @@ pub fn import_orders(json: &str) -> Result<(), String> {
 pub fn get_districts() -> String {
     #[cfg(target_arch = "wasm32")]
     {
-        return local_storage()
-            .get_item(KEY_DISTRICTS)
-            .ok()
-            .flatten()
-            .unwrap_or_else(|| "[]".into());
+        return match safe_local_storage() {
+            Ok(s) => s
+                .get_item(KEY_DISTRICTS)
+                .ok()
+                .flatten()
+                .unwrap_or_else(|| "[]".into()),
+            Err(_) => "[]".into(),
+        };
     }
     "[]".into()
 }
@@ -136,11 +143,14 @@ pub fn get_districts() -> String {
 pub fn get_locations() -> String {
     #[cfg(target_arch = "wasm32")]
     {
-        return local_storage()
-            .get_item(KEY_LOCATIONS)
-            .ok()
-            .flatten()
-            .unwrap_or_else(|| "[]".into());
+        return match safe_local_storage() {
+            Ok(s) => s
+                .get_item(KEY_LOCATIONS)
+                .ok()
+                .flatten()
+                .unwrap_or_else(|| "[]".into()),
+            Err(_) => "[]".into(),
+        };
     }
     "[]".into()
 }
@@ -149,10 +159,12 @@ pub fn get_locations() -> String {
 pub fn get_location(id: u32) -> String {
     #[cfg(target_arch = "wasm32")]
     {
-        if let Ok(Some(s)) = local_storage().get_item(KEY_LOCATIONS) {
-            if let Ok(list) = serde_json::from_str::<Vec<models::Location>>(&s) {
-                if let Some(loc) = list.into_iter().find(|l| l.id == id) {
-                    return serde_json::to_string(&loc).unwrap_or_else(|_| "{}".into());
+        if let Ok(storage) = safe_local_storage() {
+            if let Ok(Some(s)) = storage.get_item(KEY_LOCATIONS) {
+                if let Ok(list) = serde_json::from_str::<Vec<models::Location>>(&s) {
+                    if let Some(loc) = list.into_iter().find(|l| l.id == id) {
+                        return serde_json::to_string(&loc).unwrap_or_else(|_| "{}".into());
+                    }
                 }
             }
         }
@@ -168,10 +180,12 @@ pub fn get_location(id: u32) -> String {
 pub fn get_district(id: u32) -> String {
     #[cfg(target_arch = "wasm32")]
     {
-        if let Ok(Some(s)) = local_storage().get_item(KEY_DISTRICTS) {
-            if let Ok(list) = serde_json::from_str::<Vec<models::District>>(&s) {
-                if let Some(d) = list.into_iter().find(|d| d.id == id) {
-                    return serde_json::to_string(&d).unwrap_or_else(|_| "{}".into());
+        if let Ok(storage) = safe_local_storage() {
+            if let Ok(Some(s)) = storage.get_item(KEY_DISTRICTS) {
+                if let Ok(list) = serde_json::from_str::<Vec<models::District>>(&s) {
+                    if let Some(d) = list.into_iter().find(|d| d.id == id) {
+                        return serde_json::to_string(&d).unwrap_or_else(|_| "{}".into());
+                    }
                 }
             }
         }
@@ -187,11 +201,14 @@ pub fn get_district(id: u32) -> String {
 pub fn get_delivery_categories() -> String {
     #[cfg(target_arch = "wasm32")]
     {
-        return local_storage()
-            .get_item(KEY_CATEGORIES)
-            .ok()
-            .flatten()
-            .unwrap_or_else(|| "[]".into());
+        return match safe_local_storage() {
+            Ok(s) => s
+                .get_item(KEY_CATEGORIES)
+                .ok()
+                .flatten()
+                .unwrap_or_else(|| "[]".into()),
+            Err(_) => "[]".into(),
+        };
     }
     "[]".into()
 }
@@ -200,11 +217,14 @@ pub fn get_delivery_categories() -> String {
 pub fn get_orders() -> String {
     #[cfg(target_arch = "wasm32")]
     {
-        return local_storage()
-            .get_item(KEY_ORDERS)
-            .ok()
-            .flatten()
-            .unwrap_or_else(|| "[]".into());
+        return match safe_local_storage() {
+            Ok(s) => s
+                .get_item(KEY_ORDERS)
+                .ok()
+                .flatten()
+                .unwrap_or_else(|| "[]".into()),
+            Err(_) => "[]".into(),
+        };
     }
     "[]".into()
 }
@@ -214,7 +234,7 @@ pub fn import_deliveries(json: &str) -> Result<(), String> {
     let deliveries: Vec<models::Delivery> = parse_json_vec(json)?;
     #[cfg(target_arch = "wasm32")]
     {
-        local_storage()
+        safe_local_storage()?
             .set_item(KEY_DELIVERIES, &serde_json::to_string(&deliveries).unwrap())
             .map_err(|_| "failed to persist deliveries".to_string())?;
     }
@@ -225,11 +245,14 @@ pub fn import_deliveries(json: &str) -> Result<(), String> {
 pub fn export_deliveries() -> String {
     #[cfg(target_arch = "wasm32")]
     {
-        return local_storage()
-            .get_item(KEY_DELIVERIES)
-            .ok()
-            .flatten()
-            .unwrap_or_else(|| "[]".into());
+        return match safe_local_storage() {
+            Ok(s) => s
+                .get_item(KEY_DELIVERIES)
+                .ok()
+                .flatten()
+                .unwrap_or_else(|| "[]".into()),
+            Err(_) => "[]".into(),
+        };
     }
     "[]".into()
 }
@@ -258,8 +281,12 @@ fn now_iso_utc() -> String {
 fn load_orders_from_storage() -> Vec<models::Order> {
     #[cfg(target_arch = "wasm32")]
     {
-        if let Ok(Some(s)) = local_storage().get_item(KEY_ORDERS) {
-            serde_json::from_str(&s).unwrap_or_default()
+        if let Ok(storage) = safe_local_storage() {
+            if let Ok(Some(s)) = storage.get_item(KEY_ORDERS) {
+                serde_json::from_str(&s).unwrap_or_default()
+            } else {
+                Vec::new()
+            }
         } else {
             Vec::new()
         }
@@ -273,8 +300,12 @@ fn load_orders_from_storage() -> Vec<models::Order> {
 fn load_deliveries_from_storage() -> Vec<models::Delivery> {
     #[cfg(target_arch = "wasm32")]
     {
-        if let Ok(Some(s)) = local_storage().get_item(KEY_DELIVERIES) {
-            serde_json::from_str(&s).unwrap_or_default()
+        if let Ok(storage) = safe_local_storage() {
+            if let Ok(Some(s)) = storage.get_item(KEY_DELIVERIES) {
+                serde_json::from_str(&s).unwrap_or_default()
+            } else {
+                Vec::new()
+            }
         } else {
             Vec::new()
         }
@@ -287,7 +318,7 @@ fn load_deliveries_from_storage() -> Vec<models::Delivery> {
 
 #[cfg(target_arch = "wasm32")]
 fn save_deliveries_to_storage(deliveries: &[models::Delivery]) -> Result<(), String> {
-    local_storage()
+    safe_local_storage()?
         .set_item(KEY_DELIVERIES, &serde_json::to_string(deliveries).unwrap())
         .map_err(|_| "failed to persist deliveries".to_string())
 }
@@ -495,6 +526,24 @@ fn logic_bulk_complete(
     Ok(format!("completed {}", completed))
 }
 
+// ---------- Validation helpers ----------
+fn validate_nonzero(name: &str, value: u32) -> Result<(), String> {
+    if value == 0 {
+        Err(format!("{} must be > 0", name))
+    } else {
+        Ok(())
+    }
+}
+
+fn validate_comment(comment: &Option<String>) -> Result<(), String> {
+    if let Some(c) = comment {
+        if c.len() > 500 {
+            return Err("comment too long (max 500 chars)".into());
+        }
+    }
+    Ok(())
+}
+
 // ---------- WASM exposed business logic ----------
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub fn initialize() {
@@ -503,6 +552,7 @@ pub fn initialize() {
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub fn take_order(order_number: u32) -> Result<String, String> {
+    validate_nonzero("order_number", order_number)?;
     let orders = load_orders_from_storage();
     let mut deliveries = load_deliveries_from_storage();
     let res = logic_take_order(&orders, &mut deliveries, order_number);
@@ -519,6 +569,9 @@ pub fn store_delivery(
     location_id: u32,
     comment: Option<String>,
 ) -> Result<String, String> {
+    validate_nonzero("order_number", order_number)?;
+    validate_nonzero("location_id", location_id)?;
+    validate_comment(&comment)?;
     let mut deliveries = load_deliveries_from_storage();
     let res = logic_store_delivery(&mut deliveries, order_number, location_id, comment);
     #[cfg(target_arch = "wasm32")]
@@ -530,6 +583,8 @@ pub fn store_delivery(
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub fn continue_delivery(order_number: u32, comment: Option<String>) -> Result<String, String> {
+    validate_nonzero("order_number", order_number)?;
+    validate_comment(&comment)?;
     let mut deliveries = load_deliveries_from_storage();
     let res = logic_continue_delivery(&mut deliveries, order_number, comment);
     #[cfg(target_arch = "wasm32")]
@@ -541,6 +596,7 @@ pub fn continue_delivery(order_number: u32, comment: Option<String>) -> Result<S
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub fn make_delivery(order_number: u32) -> Result<String, String> {
+    validate_nonzero("order_number", order_number)?;
     let orders = load_orders_from_storage();
     let mut deliveries = load_deliveries_from_storage();
     let res = logic_make_delivery(&orders, &mut deliveries, order_number);
@@ -553,6 +609,8 @@ pub fn make_delivery(order_number: u32) -> Result<String, String> {
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub fn fail_delivery(order_number: u32, comment: Option<String>) -> Result<String, String> {
+    validate_nonzero("order_number", order_number)?;
+    validate_comment(&comment)?;
     let orders = load_orders_from_storage();
     let mut deliveries = load_deliveries_from_storage();
     let res = logic_fail_delivery(&orders, &mut deliveries, order_number, comment);
@@ -565,6 +623,8 @@ pub fn fail_delivery(order_number: u32, comment: Option<String>) -> Result<Strin
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub fn lose_delivery(order_number: u32, comment: Option<String>) -> Result<String, String> {
+    validate_nonzero("order_number", order_number)?;
+    validate_comment(&comment)?;
     let mut deliveries = load_deliveries_from_storage();
     let res = logic_lose_delivery(&mut deliveries, order_number, comment);
     #[cfg(target_arch = "wasm32")]
@@ -576,6 +636,9 @@ pub fn lose_delivery(order_number: u32, comment: Option<String>) -> Result<Strin
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub fn bulk_accept(order_numbers: Vec<u32>) -> Result<String, String> {
+    if order_numbers.iter().any(|&n| n == 0) {
+        return Err("order_numbers contain invalid 0 value".into());
+    }
     let orders = load_orders_from_storage();
     let mut deliveries = load_deliveries_from_storage();
     let res = logic_bulk_accept(&orders, &mut deliveries, &order_numbers);
@@ -588,6 +651,9 @@ pub fn bulk_accept(order_numbers: Vec<u32>) -> Result<String, String> {
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub fn bulk_complete(order_numbers: Vec<u32>) -> Result<String, String> {
+    if order_numbers.iter().any(|&n| n == 0) {
+        return Err("order_numbers contain invalid 0 value".into());
+    }
     let orders = load_orders_from_storage();
     let mut deliveries = load_deliveries_from_storage();
     let res = logic_bulk_complete(&orders, &mut deliveries, &order_numbers);
@@ -600,14 +666,29 @@ pub fn bulk_complete(order_numbers: Vec<u32>) -> Result<String, String> {
 
 #[cfg(target_arch = "wasm32")]
 fn local_storage() -> Storage {
+    // Kept for backward-compat in internal calls; may panic if storage unavailable.
     window().unwrap().local_storage().unwrap().unwrap()
+}
+
+#[cfg(target_arch = "wasm32")]
+fn safe_local_storage() -> Result<Storage, String> {
+    let win = window().ok_or_else(|| "window unavailable".to_string())?;
+    let storage = win
+        .local_storage()
+        .map_err(|_| "localStorage unavailable".to_string())?
+        .ok_or_else(|| "localStorage not accessible".to_string())?;
+    Ok(storage)
 }
 
 // ---------- Query and Summary services ----------
 #[cfg(target_arch = "wasm32")]
 fn load_locations_from_storage() -> Vec<models::Location> {
-    if let Ok(Some(s)) = local_storage().get_item(KEY_LOCATIONS) {
-        serde_json::from_str(&s).unwrap_or_default()
+    if let Ok(storage) = safe_local_storage() {
+        if let Ok(Some(s)) = storage.get_item(KEY_LOCATIONS) {
+            serde_json::from_str(&s).unwrap_or_default()
+        } else {
+            Vec::new()
+        }
     } else {
         Vec::new()
     }
@@ -615,8 +696,12 @@ fn load_locations_from_storage() -> Vec<models::Location> {
 
 #[cfg(target_arch = "wasm32")]
 fn load_districts_from_storage() -> Vec<models::District> {
-    if let Ok(Some(s)) = local_storage().get_item(KEY_DISTRICTS) {
-        serde_json::from_str(&s).unwrap_or_default()
+    if let Ok(storage) = safe_local_storage() {
+        if let Ok(Some(s)) = storage.get_item(KEY_DISTRICTS) {
+            serde_json::from_str(&s).unwrap_or_default()
+        } else {
+            Vec::new()
+        }
     } else {
         Vec::new()
     }
