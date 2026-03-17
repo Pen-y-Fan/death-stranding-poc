@@ -103,3 +103,66 @@ fn bulk_actions_edge_cases() {
     assert_eq!(deliveries[0].order_number, 2);
     assert_eq!(deliveries[0].status, models::DeliveryStatus::COMPLETE);
 }
+
+#[test]
+fn import_deliveries_filtering() {
+    let orders = vec![order(100, 1, 2), order(101, 3, 4)];
+    let incoming = vec![
+        models::Delivery {
+            id: 1,
+            order_number: 100,
+            status: models::DeliveryStatus::InProgress,
+            location_id: None,
+            started_at: None,
+            ended_at: None,
+            comment: None,
+            user_id: None,
+        },
+        models::Delivery {
+            id: 2,
+            order_number: 999, // Invalid
+            status: models::DeliveryStatus::InProgress,
+            location_id: None,
+            started_at: None,
+            ended_at: None,
+            comment: None,
+            user_id: None,
+        },
+    ];
+
+    let filtered = logic_import_deliveries(&orders, incoming);
+    assert_eq!(filtered.len(), 1);
+    assert_eq!(filtered[0].order_number, 100);
+}
+
+#[test]
+fn multiple_deliveries_same_order_sequential_ids() {
+    let orders = vec![order(229, 100, 200)];
+    let mut deliveries: Vec<models::Delivery> = vec![];
+
+    // First take of order 229
+    logic_take_order(&orders, &mut deliveries, 229).unwrap();
+    assert_eq!(deliveries.len(), 1);
+    assert_eq!(deliveries[0].order_number, 229);
+    assert_eq!(deliveries[0].id, 1);
+
+    // Complete it
+    logic_make_delivery(&orders, &mut deliveries, 229).unwrap();
+    assert_eq!(deliveries[0].status, models::DeliveryStatus::COMPLETE);
+
+    // Second take of order 229
+    logic_take_order(&orders, &mut deliveries, 229).unwrap();
+    assert_eq!(deliveries.len(), 2);
+    assert_eq!(deliveries[1].order_number, 229);
+    assert_eq!(deliveries[1].id, 2); // Sequential ID
+
+    // Complete it too
+    logic_make_delivery(&orders, &mut deliveries, 229).unwrap();
+    assert_eq!(deliveries[1].status, models::DeliveryStatus::COMPLETE);
+
+    // Third take of order 229
+    logic_take_order(&orders, &mut deliveries, 229).unwrap();
+    assert_eq!(deliveries.len(), 3);
+    assert_eq!(deliveries[2].order_number, 229);
+    assert_eq!(deliveries[2].id, 3); // Sequential ID
+}

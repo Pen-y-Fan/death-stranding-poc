@@ -3,6 +3,8 @@
 <head>
     <meta charset="utf-8">
     <title>Death Stranding PoC</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 
@@ -10,6 +12,7 @@
     <button id="tab-dashboard" role="tab" aria-controls="panel-dashboard" aria-selected="false">Dashboard</button>
     <button id="tab-orders" role="tab" aria-controls="panel-orders" aria-selected="true">Orders</button>
     <button id="tab-deliveries" role="tab" aria-controls="panel-deliveries" aria-selected="false">Deliveries</button>
+    <button id="tab-settings" role="tab" aria-controls="panel-settings" aria-selected="false">Settings</button>
 </nav>
 
 <section id="panel-dashboard" hidden>
@@ -19,48 +22,63 @@
 
 <section id="panel-orders">
     <h1>Orders</h1>
-    <fieldset>
+    <fieldset id="filters-container">
         <legend>Filters</legend>
-        <label>District
-            <select id="filter-district">
-                <option value="">All</option>
-            </select>
-        </label>
-        <label>Client
-            <select id="filter-client">
-                <option value="">All</option>
-            </select>
-        </label>
-        <label>Destination
-            <select id="filter-destination">
-                <option value="">All</option>
-            </select>
-        </label>
-        <label>Category
-            <select id="filter-category">
-                <option value="">All</option>
-            </select>
-        </label>
-        <fieldset>
-            <legend>Delivery Status</legend>
-            <label><input type="radio" name="status" value="" checked> Any</label>
-            <label><input type="radio" name="status" value="any"> Has delivery</label>
-            <label><input type="radio" name="status" value="none"> None</label>
-            <label><input type="radio" name="status" value="in_progress"> In progress</label>
-            <label><input type="radio" name="status" value="stored"> Stored</label>
-            <label><input type="radio" name="status" value="complete"> Complete</label>
-            <label><input type="radio" name="status" value="failed"> Failed</label>
-            <label><input type="radio" name="status" value="lost"> Lost</label>
-        </fieldset>
-        <fieldset>
-            <legend>Completion</legend>
-            <label><input type="radio" name="completion" value=""> Any</label>
-            <label><input type="radio" name="completion" value="true"> Completed</label>
-            <label><input type="radio" name="completion" value="false"> Not completed</label>
-        </fieldset>
-        <label>Search
-            <input id="filter-search" placeholder="Order # or name">
-        </label>
+        <div class="filter-row-top">
+            <label>Search
+                <input id="filter-search" placeholder="Order # or name">
+            </label>
+        </div>
+        <button id="filter-toggle" class="mobile-only" type="button" aria-expanded="false" aria-controls="filter-content">
+            <span class="hamburger"></span> Filters
+        </button>
+        <div id="filter-content">
+            <div class="filter-columns">
+                <div class="filter-column">
+                    <label>District
+                        <select id="filter-district">
+                            <option value="">All</option>
+                        </select>
+                    </label>
+                    <label>Client
+                        <select id="filter-client">
+                            <option value="">All</option>
+                        </select>
+                    </label>
+                    <label>Destination
+                        <select id="filter-destination">
+                            <option value="">All</option>
+                        </select>
+                    </label>
+                    <label>Category
+                        <select id="filter-category">
+                            <option value="">All</option>
+                        </select>
+                    </label>
+                </div>
+                <div class="filter-column">
+                    <fieldset>
+                        <legend>Delivery Status</legend>
+                        <label><input type="radio" name="status" value="" checked> Any</label>
+                        <label><input type="radio" name="status" value="any"> Has delivery</label>
+                        <label><input type="radio" name="status" value="none"> None</label>
+                        <label><input type="radio" name="status" value="in_progress"> In progress</label>
+                        <label><input type="radio" name="status" value="stored"> Stored</label>
+                        <label><input type="radio" name="status" value="complete"> Complete</label>
+                        <label><input type="radio" name="status" value="failed"> Failed</label>
+                        <label><input type="radio" name="status" value="lost"> Lost</label>
+                    </fieldset>
+                </div>
+                <div class="filter-column">
+                    <fieldset>
+                        <legend>Completion</legend>
+                        <label><input type="radio" name="completion" value=""> Any</label>
+                        <label><input type="radio" name="completion" value="true"> Completed</label>
+                        <label><input type="radio" name="completion" value="false"> Not completed</label>
+                    </fieldset>
+                </div>
+            </div>
+        </div>
     </fieldset>
     <div id="order-list" role="table" aria-label="Orders table">
         <!-- Orders will be dynamically added here -->
@@ -73,10 +91,28 @@
     </div>
 </section>
 
-<section id="panel-deliveries" hidden>
-    <h1>Deliveries</h1>
-    <div id="delivery-status" role="status" aria-live="polite"></div>
-</section>
+    <section id="panel-deliveries" hidden>
+        <h1>Deliveries</h1>
+        <div id="delivery-list" role="table" aria-label="Deliveries table">
+            <!-- Deliveries will be dynamically added here -->
+        </div>
+        <div id="delivery-status" role="status" aria-live="polite"></div>
+    </section>
+
+    <section id="panel-settings" hidden>
+        <h1>Settings & Integration</h1>
+        <fieldset>
+            <legend>Google Integration</legend>
+            <p>Export your delivery data to <strong>your personal</strong> Google Sheets or save as JSON to <strong>your personal</strong> Google Drive.</p>
+            <p><small>The application only accesses files it creates and will not see your other data.</small></p>
+            <button id="btn-google-login">Login with Google</button>
+            <button id="btn-export-sheets" disabled title="Export to your personal Google Sheets">Export to My Google Sheets</button>
+            <button id="btn-import-sheets" disabled title="Import from your personal Google Sheets">Import from My Google Sheets</button>
+            <button id="btn-export-drive" disabled title="Save to your personal Google Drive">Save to My Google Drive</button>
+            <button id="btn-import-drive" disabled title="Import from your personal Google Drive">Import from My Google Drive</button>
+            <div id="google-status" style="margin-top: 1rem; font-style: italic;"></div>
+        </fieldset>
+    </section>
 
 <script type="module">
     import init, {
@@ -98,7 +134,8 @@
         import_deliveries,
         get_schema_version,
         set_schema_version,
-        get_dashboard_summary
+        get_dashboard_summary,
+        export_deliveries
     } from './pkg/death_stranding_poc.js';
 
     const orderListDiv = document.getElementById('order-list');
@@ -108,6 +145,9 @@
     const filterDestination = document.getElementById('filter-destination');
     const filterCategory = document.getElementById('filter-category');
     const filterSearch = document.getElementById('filter-search');
+
+    let currentPage = 1;
+    const perPage = 20;
 
     function getOrders() {
         try {
@@ -144,7 +184,7 @@
         if (filterCategory.value) f.delivery_category_id = parseInt(filterCategory.value, 10);
         if (statusVal) f.delivery_status = statusVal;
         if (completionVal) f.completion = completionVal === 'true';
-        const json = query_orders(JSON.stringify(f), 1, 20, 'number', 'asc', searchVal);
+        const json = query_orders(JSON.stringify(f), currentPage, perPage, 'number', 'asc', searchVal);
         let parsed;
         try {
             parsed = JSON.parse(json);
@@ -173,41 +213,41 @@
                 if (!s) return '';
                 const t = String(s);
                 const lo = t.toLowerCase();
-                if (lo === 'in progress' || lo === 'in_progress' || lo === 'inprogress') return 'InProgress';
-                return t.toUpperCase();
+                if (lo === 'in progress' || lo === 'in_progress' || lo === 'inprogress') return 'In progress';
+                return t.charAt(0).toUpperCase() + t.slice(1).toLowerCase();
             };
             const active = dels.find(dd => {
                 const st = norm(dd.status);
-                return st === 'InProgress' || st === 'STORED';
+                return st === 'In progress' || st === 'Stored';
             });
-            const hasComplete = dels.some(dd => norm(dd.status) === 'COMPLETE');
-            const hasFailed = dels.some(dd => norm(dd.status) === 'FAILED');
-            const hasLost = dels.some(dd => norm(dd.status) === 'LOST');
+            const hasComplete = dels.some(dd => norm(dd.status).toUpperCase() === 'COMPLETE');
+            const hasFailed = dels.some(dd => norm(dd.status).toUpperCase() === 'FAILED');
+            const hasLost = dels.some(dd => norm(dd.status).toUpperCase() === 'LOST');
 
             const statusNorm = active ? norm(active.status)
-                : hasComplete ? 'COMPLETE'
-                    : hasFailed ? 'FAILED'
-                        : hasLost ? 'LOST'
-                            : 'not_taken';
+                : hasComplete ? 'Complete'
+                    : hasFailed ? 'Failed'
+                        : hasLost ? 'Lost'
+                            : 'Not taken';
 
             const client = byId.get(it.client_id);
             const destination = byId.get(it.destination_id);
-            const clientCell = client ? `<a href="#" data-show-location="${client.id}" data-kind="client">${client.name}</a>` : '';
-            const destCell = destination ? `<a href="#" data-show-location="${destination.id}" data-kind="destination">${destination.name}</a>` : '';
+            const clientCell = client ? `<a href="#" class="btn-link" data-show-location="${client.id}" data-kind="client">${client.name}</a>` : '';
+            const destCell = destination ? `<a href="#" class="btn-link" data-show-location="${destination.id}" data-kind="destination">${destination.name}</a>` : '';
 
             let actionHtml = '';
             if (!active) {
-                actionHtml = `<button data-action="take" data-id="${o.id}" type="button" aria-label="Take order ${o.id}">Take</button>`;
-            } else if (statusNorm === 'STORED') {
+                actionHtml = `<button data-action="take" data-id="${o.id}" type="button" aria-label="Take order ${o.id}">Start</button>`;
+            } else if (statusNorm === 'Stored') {
                 actionHtml = `
                     <button data-action="continue" data-id="${o.id}" type="button" aria-label="Continue stored order ${o.id}">Continue</button>
-                    <button data-action="deliver" data-id="${o.id}" type="button" aria-label="Make delivery for order ${o.id}">Make delivery</button>
+                    <button data-action="deliver" data-id="${o.id}" type="button" aria-label="Deliver order ${o.id}">Deliver</button>
                     <button data-action="fail" data-id="${o.id}" type="button" aria-label="Fail order ${o.id}">Fail</button>
                     <button data-action="lost" data-id="${o.id}" type="button" aria-label="Mark order ${o.id} as lost">Lost</button>`;
-            } else if (statusNorm === 'InProgress') {
+            } else if (statusNorm === 'In progress') {
                 actionHtml = `
                     <button data-action="store" data-id="${o.id}" type="button" aria-label="Store order ${o.id} at a location">Store</button>
-                    <button data-action="deliver" data-id="${o.id}" type="button" aria-label="Make delivery for order ${o.id}">Make delivery</button>
+                    <button data-action="deliver" data-id="${o.id}" type="button" aria-label="Deliver order ${o.id}">Deliver</button>
                     <button data-action="fail" data-id="${o.id}" type="button" aria-label="Fail order ${o.id}">Fail</button>
                     <button data-action="lost" data-id="${o.id}" type="button" aria-label="Mark order ${o.id} as lost">Lost</button>`;
             } else {
@@ -218,6 +258,7 @@
         }
         html += '</tbody></table>';
         orderListDiv.innerHTML = html;
+        renderPagination(parsed.total);
 
         // Delegate button clicks
         orderListDiv.querySelectorAll('button[data-action]')?.forEach(btn => {
@@ -283,6 +324,80 @@
         statusDiv.textContent = `Pending: ${pending}, Delivered: ${delivered}`;
     }
 
+    function renderPagination(total) {
+        const pagDiv = document.getElementById('orders-pagination');
+        if (!pagDiv) return;
+        if (total <= perPage && currentPage === 1) {
+            pagDiv.innerHTML = '';
+            return;
+        }
+        const totalPages = Math.ceil(total / perPage);
+        pagDiv.innerHTML = `
+            <div class="pagination">
+                <button id="prev-page" ${currentPage === 1 ? 'disabled' : ''}>Previous</button>
+                <span>Page ${currentPage} of ${totalPages || 1}</span>
+                <button id="next-page" ${currentPage >= totalPages ? 'disabled' : ''}>Next</button>
+            </div>
+        `;
+        document.getElementById('prev-page')?.addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                render();
+            }
+        });
+        document.getElementById('next-page')?.addEventListener('click', () => {
+            if (currentPage < totalPages) {
+                currentPage++;
+                render();
+            }
+        });
+    }
+
+    function renderDeliveries() {
+        const delListDiv = document.getElementById('delivery-list');
+        if (!delListDiv) return;
+        const deliveries = getDeliveries();
+        if (deliveries.length === 0) {
+            delListDiv.innerHTML = '<p>No deliveries found.</p>';
+            return;
+        }
+
+        const locationsList = (() => {
+            try { return JSON.parse(get_locations()); } catch { return []; }
+        })();
+        const locById = new Map(locationsList.map(l => [l.id, l]));
+
+        let html = '<table border="1" cellpadding="6" cellspacing="0" role="grid" aria-label="Deliveries list">';
+        html += '<thead><tr><th>ID</th><th>Order #</th><th>Status</th><th>Location</th><th>Started</th><th>Ended</th><th>Comment</th></tr></thead><tbody>';
+        for (const d of deliveries) {
+            const locName = d.location_id ? (locById.get(d.location_id)?.name || d.location_id) : 'Carried';
+            const statusLabel = String(d.status).replace(/_/g, ' ');
+            const statusNorm = statusLabel.charAt(0).toUpperCase() + statusLabel.slice(1).toLowerCase();
+            
+            html += `<tr>
+                <td>${d.id}</td>
+                <td><a href="#" class="btn-link" data-goto-order="${d.order_number}">${d.order_number}</a></td>
+                <td>${statusNorm}</td>
+                <td>${locName}</td>
+                <td><small>${d.started_at || '—'}</small></td>
+                <td><small>${d.ended_at || '—'}</small></td>
+                <td>${d.comment || '—'}</td>
+            </tr>`;
+        }
+        html += '</tbody></table>';
+        delListDiv.innerHTML = html;
+
+        delListDiv.querySelectorAll('a[data-goto-order]').forEach(a => {
+            a.addEventListener('click', (ev) => {
+                ev.preventDefault();
+                const num = ev.currentTarget.getAttribute('data-goto-order');
+                filterSearch.value = num;
+                document.getElementById('tab-orders').click();
+                render();
+            });
+        });
+    }
+
     function renderDashboard() {
         const el = document.getElementById('dashboard-summary');
         if (!el) return;
@@ -309,30 +424,283 @@
 
     async function seedData() {
         try {
+            console.log('Fetching demo data...');
             const [districts, locations, categories, orders] = await Promise.all([
-                fetch('./data/districts.json').then(r => r.json()),
-                fetch('./data/locations.json').then(r => r.json()),
-                fetch('./data/delivery_categories.json').then(r => r.json()),
-                fetch('./data/orders.json').then(r => r.json()),
+                fetch('./data/districts.json').then(r => r.ok ? r.json() : Promise.reject(`Failed to load districts: ${r.status}`)),
+                fetch('./data/locations.json').then(r => r.ok ? r.json() : Promise.reject(`Failed to load locations: ${r.status}`)),
+                fetch('./data/delivery_categories.json').then(r => r.ok ? r.json() : Promise.reject(`Failed to load categories: ${r.status}`)),
+                fetch('./data/orders.json').then(r => r.ok ? r.json() : Promise.reject(`Failed to load orders: ${r.status}`)),
             ]);
+            console.log('Data fetched. Importing into WASM...');
             await import_districts(JSON.stringify(districts));
             await import_locations(JSON.stringify(locations));
             await import_delivery_categories(JSON.stringify(categories));
             await import_orders(JSON.stringify(orders));
-            // Optional deliveries seed
-            try {
-                const deliveries = await fetch('./data/deliveries.json').then(r => r.ok ? r.json() : []);
-                if (deliveries && deliveries.length) {
-                    await import_deliveries(JSON.stringify(deliveries));
-                }
-            } catch {
-            }
+            console.log('Import successful.');
             await set_schema_version('1');
             setupFilters();
             render();
         } catch (e) {
             console.error('Seeding failed', e);
             alert('Failed to load demo data. See console for details.');
+        }
+    }
+
+    let googleAccessToken = null;
+    const GOOGLE_CLIENT_ID = '461367032682-3vaqiqptnjdt6dqiidmd61ncp0ehvunn.apps.googleusercontent.com'; // User needs to replace this
+    const DISCOVERY_DOCS = [
+        "https://www.googleapis.com/discovery/v1/apis/sheets/v4/rest",
+        "https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"
+    ];
+    const SCOPES = "https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file";
+
+    function updateGoogleStatus(msg) {
+        document.getElementById('google-status').textContent = msg;
+    }
+
+    async function initGoogle() {
+        const btnLogin = document.getElementById('btn-google-login');
+        const btnSheets = document.getElementById('btn-export-sheets');
+        const btnImportSheets = document.getElementById('btn-import-sheets');
+        const btnDrive = document.getElementById('btn-export-drive');
+        const btnImportDrive = document.getElementById('btn-import-drive');
+
+        btnLogin.addEventListener('click', () => {
+            const client = google.accounts.oauth2.initTokenClient({
+                client_id: GOOGLE_CLIENT_ID,
+                scope: SCOPES,
+                callback: (response) => {
+                    if (response.error !== undefined) {
+                        throw (response);
+                    }
+                    googleAccessToken = response.access_token;
+                    updateGoogleStatus('Logged in to Google');
+                    btnSheets.disabled = false;
+                    btnImportSheets.disabled = false;
+                    btnDrive.disabled = false;
+                    btnImportDrive.disabled = false;
+                    btnLogin.textContent = 'Refresh Login';
+                },
+            });
+            client.requestAccessToken({prompt: 'consent'});
+        });
+
+        btnSheets.addEventListener('click', exportToSheets);
+        btnImportSheets.addEventListener('click', importFromSheets);
+        btnDrive.addEventListener('click', saveToDrive);
+        btnImportDrive.addEventListener('click', importFromDrive);
+    }
+
+    async function exportToSheets() {
+        if (!googleAccessToken) return alert('Please login first');
+        updateGoogleStatus('Exporting to Sheets...');
+        try {
+            // 1. Create a new spreadsheet
+            const now = new Date();
+            const dateStr = now.toISOString().replace(/[:.]/g, '-').slice(0, 19);
+            const createResponse = await fetch('https://sheets.googleapis.com/v4/spreadsheets', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${googleAccessToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    properties: { title: `Death Stranding Deliveries - ${dateStr}` }
+                })
+            });
+            const spreadsheet = await createResponse.json();
+            const spreadsheetId = spreadsheet.spreadsheetId;
+
+            // 2. Prepare data
+            const deliveries = JSON.parse(export_deliveries());
+            const rows = [['ID', 'Order #', 'Status', 'Location ID', 'Started At', 'Ended At', 'Comment']];
+            deliveries.forEach(d => {
+                rows.push([d.id, d.order_number, d.status, d.location_id || '', d.started_at || '', d.ended_at || '', d.comment || '']);
+            });
+
+            // 3. Update values
+            await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Sheet1!A1:append?valueInputOption=USER_ENTERED`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${googleAccessToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ values: rows })
+            });
+
+            updateGoogleStatus(`Exported! Spreadsheet ID: ${spreadsheetId}`);
+            window.open(`https://docs.google.com/spreadsheets/d/${spreadsheetId}`, '_blank');
+        } catch (e) {
+            console.error(e);
+            updateGoogleStatus('Export to Sheets failed.');
+        }
+    }
+
+    async function importFromSheets() {
+        if (!googleAccessToken) return alert('Please login first');
+        updateGoogleStatus('Listing spreadsheets from Drive...');
+        try {
+            // 1. List spreadsheets using Drive API
+            const query = encodeURIComponent("mimeType='application/vnd.google-apps.spreadsheet' and trashed=false");
+            const listResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&orderBy=modifiedTime desc&pageSize=10&fields=files(id,name,modifiedTime)`, {
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${googleAccessToken}` }
+            });
+            const data = await listResponse.json();
+            const files = data.files || [];
+
+            if (files.length === 0) {
+                updateGoogleStatus('No spreadsheets found in your Drive.');
+                return;
+            }
+
+            let promptMsg = "Select a spreadsheet to import (enter number):\n";
+            files.forEach((f, i) => { promptMsg += `${i + 1}. ${f.name} (${new Date(f.modifiedTime || '').toLocaleString()})\n`; });
+
+            const choice = prompt(promptMsg);
+            if (choice === null) {
+                updateGoogleStatus('Import cancelled.');
+                return;
+            }
+            const idx = parseInt(choice) - 1;
+            if (isNaN(idx) || !files[idx]) {
+                alert('Invalid choice.');
+                return;
+            }
+
+            const selectedFile = files[idx];
+            updateGoogleStatus(`Fetching values from ${selectedFile.name}...`);
+
+            // 2. Fetch sheet values
+            // We assume Sheet1 or the first sheet, and columns ID, Order #, Status, Location ID, Started At, Ended At, Comment
+            const spreadsheetId = selectedFile.id;
+            const valuesResponse = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Sheet1!A2:G?valueRenderOption=UNFORMATTED_VALUE`, {
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${googleAccessToken}` }
+            });
+
+            if (!valuesResponse.ok) {
+                throw new Error(`Failed to fetch values: ${valuesResponse.statusText}`);
+            }
+
+            const valuesData = await valuesResponse.json();
+            const rows = valuesData.values || [];
+
+            if (rows.length === 0) {
+                updateGoogleStatus('No data found in the selected spreadsheet.');
+                return;
+            }
+
+            // 3. Convert rows back to JSON format
+            const deliveries = rows.map(row => ({
+                id: parseInt(row[0]),
+                order_number: parseInt(row[1]),
+                status: row[2],
+                location_id: row[3] ? parseInt(row[3]) : null,
+                started_at: row[4] || null,
+                ended_at: row[5] || null,
+                comment: row[6] || null
+            }));
+
+            // 4. Import via WASM
+            updateGoogleStatus('Importing to local storage...');
+            await import_deliveries(JSON.stringify(deliveries));
+
+            updateGoogleStatus(`Successfully imported from ${selectedFile.name}!`);
+            renderDeliveries();
+        } catch (e) {
+            console.error(e);
+            updateGoogleStatus('Import from Sheets failed.');
+        }
+    }
+
+    async function saveToDrive() {
+        if (!googleAccessToken) return alert('Please login first');
+        updateGoogleStatus('Saving to Drive...');
+        try {
+            const deliveriesJson = export_deliveries();
+            const now = new Date();
+            const dateStr = now.toISOString().replace(/[:.]/g, '-').slice(0, 19);
+            const metadata = {
+                name: `death_stranding_deliveries_${dateStr}.json`,
+                mimeType: 'application/json'
+            };
+
+            const form = new FormData();
+            form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+            form.append('file', new Blob([deliveriesJson], { type: 'application/json' }));
+
+            const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${googleAccessToken}` },
+                body: form
+            });
+            const file = await response.json();
+            updateGoogleStatus(`Saved to Drive! File ID: ${file.id}`);
+        } catch (e) {
+            console.error(e);
+            updateGoogleStatus('Save to Drive failed.');
+        }
+    }
+
+    async function importFromDrive() {
+        if (!googleAccessToken) return alert('Please login first');
+        updateGoogleStatus('Listing files from Drive...');
+        try {
+            // 1. List files (only those the app can see, typically)
+            // Filtering for JSON files that aren't in trash
+            const query = encodeURIComponent("mimeType='application/json' and trashed=false");
+            const listResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&orderBy=modifiedTime desc&pageSize=10&fields=files(id,name,modifiedTime)`, {
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${googleAccessToken}` }
+            });
+            const data = await listResponse.json();
+            const files = data.files || [];
+
+            if (files.length === 0) {
+                updateGoogleStatus('No JSON files found in your Drive.');
+                return;
+            }
+
+            // Simple prompt to pick a file (real app might use a custom modal)
+            let promptMsg = "Select a file to import (enter number):\n";
+            files.forEach((f, i) => { promptMsg += `${i + 1}. ${f.name} (${new Date(f.modifiedTime || '').toLocaleString()})\n`; });
+
+            const choice = prompt(promptMsg);
+            if (choice === null) {
+                updateGoogleStatus('Import cancelled.');
+                return;
+            }
+            const idx = parseInt(choice) - 1;
+            if (isNaN(idx) || !files[idx]) {
+                alert('Invalid choice.');
+                return;
+            }
+
+            const selectedFile = files[idx];
+            updateGoogleStatus(`Downloading ${selectedFile.name}...`);
+
+            // 2. Download the file content
+            const downloadResponse = await fetch(`https://www.googleapis.com/drive/v3/files/${selectedFile.id}?alt=media`, {
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${googleAccessToken}` }
+            });
+
+            if (!downloadResponse.ok) {
+                throw new Error(`Failed to download file: ${downloadResponse.statusText}`);
+            }
+
+            const json = await downloadResponse.text();
+
+            // 3. Import via WASM
+            updateGoogleStatus('Importing to local storage...');
+            await import_deliveries(json);
+
+            updateGoogleStatus(`Successfully imported from ${selectedFile.name}!`);
+            renderDeliveries(); // Refresh the list if visible
+        } catch (e) {
+            console.error(e);
+            updateGoogleStatus('Import from Drive failed.');
         }
     }
 
@@ -356,6 +724,7 @@
             setupFilters();
             render();
             renderDashboard();
+            initGoogle();
         })
         .catch(err => {
             console.error('WASM init failed', err);
@@ -363,6 +732,16 @@
         });
 
     function setupNav() {
+        const toggle = document.getElementById('filter-toggle');
+        const content = document.getElementById('filter-content');
+        if (toggle && content) {
+            toggle.addEventListener('click', () => {
+                const expanded = toggle.getAttribute('aria-expanded') === 'true';
+                toggle.setAttribute('aria-expanded', !expanded);
+                content.classList.toggle('active');
+            });
+        }
+
         function show(panelId) {
             document.querySelectorAll('section[id^="panel-"]').forEach(sec => sec.hidden = true);
             const el = document.getElementById(panelId);
@@ -373,11 +752,13 @@
             if (currentTab) currentTab.setAttribute('aria-selected', 'true');
             if (panelId === 'panel-dashboard') renderDashboard();
             if (panelId === 'panel-orders') render();
+            if (panelId === 'panel-deliveries') renderDeliveries();
         }
 
         document.getElementById('tab-dashboard').addEventListener('click', () => show('panel-dashboard'));
         document.getElementById('tab-orders').addEventListener('click', () => show('panel-orders'));
         document.getElementById('tab-deliveries').addEventListener('click', () => show('panel-deliveries'));
+        document.getElementById('tab-settings').addEventListener('click', () => show('panel-settings'));
         show('panel-orders');
     }
 
@@ -460,10 +841,59 @@
         } catch {
         }
         const onChange = () => {
+            currentPage = 1; // Reset to first page on filter change
             updateSwitchButton();
             render();
         };
-        [filterDistrict, filterClient, filterDestination, filterCategory, filterSearch].forEach(el => el.addEventListener('change', onChange));
+        filterDistrict.addEventListener('change', () => {
+            // Sub-filter: Update Client and Destination based on District
+            const districtId = filterDistrict.value;
+            const locations = JSON.parse(get_locations());
+            
+            const clientOpts = filterClient.querySelectorAll('option');
+            const destOpts = filterDestination.querySelectorAll('option');
+            
+            [clientOpts, destOpts].forEach(opts => {
+                opts.forEach(opt => {
+                    if (opt.value === "") {
+                        opt.hidden = false;
+                        return;
+                    }
+                    const locId = parseInt(opt.value, 10);
+                    const loc = locations.find(l => l.id === locId);
+                    if (!districtId || (loc && loc.district_id === parseInt(districtId, 10))) {
+                        opt.hidden = false;
+                    } else {
+                        opt.hidden = true;
+                        if (opt.selected) {
+                           opt.parentElement.value = "";
+                        }
+                    }
+                });
+            });
+            
+            // If current search order is not in this district, clear search
+            const searchVal = filterSearch.value.trim();
+            if (searchVal && districtId) {
+                // We use query_orders with ONLY search to find the order's district
+                const resultJson = query_orders(null, 1, 1, 'number', 'asc', searchVal);
+                try {
+                    const result = JSON.parse(resultJson);
+                    if (result.items && result.items.length > 0) {
+                        const order = result.items[0];
+                        const locs = JSON.parse(get_locations());
+                        const clientLoc = locs.find(l => l.id === order.client_id);
+                        if (clientLoc && clientLoc.district_id !== parseInt(districtId, 10)) {
+                            filterSearch.value = "";
+                        }
+                    }
+                } catch(e) {}
+            }
+            
+            onChange();
+        });
+        [filterClient, filterDestination, filterCategory, filterSearch].forEach(el => el.addEventListener('change', onChange));
+        filterSearch.addEventListener('input', onChange); // Search as you type
         document.querySelectorAll('input[name="status"]').forEach(el => el.addEventListener('change', onChange));
         document.querySelectorAll('input[name="completion"]').forEach(el => el.addEventListener('change', onChange));
         updateSwitchButton();
