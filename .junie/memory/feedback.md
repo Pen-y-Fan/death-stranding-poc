@@ -70,3 +70,11 @@
     "NEW INSTRUCTION": "WHEN deploying to GitHub Pages project site THEN use relative asset paths and verify file presence"
 }
 
+[2026-03-17 22:55] - Updated by Junie
+{
+    "TYPE": "preference",
+    "CATEGORY": "Git workflow",
+    "EXPECTATION": "They want commit messages to follow a specific format: 40 chars subject, 2 sentences body, Conventional Commits, and gitmoji.",
+    "NEW INSTRUCTION": "WHEN committing code THEN subject < 40 chars, body <= 2 sentences, use Conventional Commits and gitmoji"
+}
+
