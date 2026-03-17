@@ -1,0 +1,284 @@
+:root {
+    --bg-color: #0b0c10;
+    --text-color: #c5c6c7;
+    --accent-color: #66fcf1;
+    --secondary-accent: #45a29e;
+    --dark-grey: #1f2833;
+    --danger-color: #ff4b2b;
+    --success-color: #2ecc71;
+    --warning-color: #f1c40f;
+    --font-main: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: var(--font-main);
+    margin: 0;
+    padding: 0;
+    line-height: 1.6;
+}
+
+h1, h2, h3 {
+    color: var(--accent-color);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+/* Navigation */
+nav {
+    background-color: var(--dark-grey);
+    padding: 1rem;
+    display: flex;
+    gap: 1rem;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    border-bottom: 2px solid var(--secondary-accent);
+}
+
+nav button {
+    background: transparent;
+    border: none;
+    color: var(--text-color);
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    font-size: 1rem;
+    text-transform: uppercase;
+    transition: all 0.3s ease;
+    border-bottom: 2px solid transparent;
+}
+
+nav button:hover {
+    color: var(--accent-color);
+    background-color: rgba(102, 252, 241, 0.1);
+}
+
+nav button[aria-selected="true"] {
+    color: var(--accent-color);
+    border-bottom: 2px solid var(--accent-color);
+}
+
+/* Sections */
+section {
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* Forms and Filters */
+fieldset {
+    border: 1px solid var(--secondary-accent);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    border-radius: 4px;
+    background-color: rgba(31, 40, 51, 0.5);
+}
+
+legend {
+    padding: 0 0.5rem;
+    color: var(--accent-color);
+    font-weight: bold;
+}
+
+label {
+    display: block;
+    margin-bottom: 1rem;
+}
+
+select, input[type="text"], input:not([type="radio"]) {
+    background-color: var(--dark-grey);
+    color: var(--text-color);
+    border: 1px solid var(--secondary-accent);
+    padding: 0.5rem;
+    border-radius: 4px;
+    margin-top: 0.25rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Table Styles */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+    background-color: rgba(31, 40, 51, 0.8);
+}
+
+th, td {
+    border: 1px solid var(--secondary-accent);
+    padding: 1rem;
+    text-align: left;
+}
+
+th {
+    background-color: var(--dark-grey);
+    color: var(--accent-color);
+}
+
+th:hover {
+    background-color: var(--accent-color);
+    color: var(--bg-color);
+}
+
+tr:nth-child(even) {
+    background-color: rgba(69, 162, 158, 0.1);
+}
+
+tr:hover {
+    background-color: rgba(102, 252, 241, 0.1);
+}
+
+/* Buttons and Table Actions */
+.btn-link {
+    background-color: var(--dark-grey);
+    color: var(--accent-color);
+    border: 1px solid var(--secondary-accent);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 0.85rem;
+    display: inline-block;
+    transition: all 0.3s ease;
+}
+
+.btn-link:hover {
+    background-color: var(--accent-color);
+    color: var(--bg-color);
+}
+
+button {
+    background-color: var(--secondary-accent);
+    color: var(--bg-color);
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    text-transform: uppercase;
+    transition: background-color 0.3s ease;
+}
+
+button:hover {
+    background-color: var(--accent-color);
+    color: var(--bg-color);
+}
+
+#panel-settings button {
+    margin-bottom: 0.5rem;
+}
+
+button[data-action="take"] { background-color: var(--success-color); color: white; }
+button[data-action="deliver"] { background-color: var(--accent-color); color: var(--bg-color); }
+button[data-action="fail"] { background-color: var(--danger-color); color: white; }
+button[data-action="lost"] { background-color: #e67e22; color: white; }
+button[data-action="store"] { background-color: var(--warning-color); color: var(--bg-color); }
+button[data-action="continue"] { background-color: var(--success-color); color: white; }
+
+/* Dashboard Summary */
+#dashboard-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+#dashboard-summary div[role="group"] {
+    background-color: var(--dark-grey);
+    padding: 1.5rem;
+    border-radius: 4px;
+    border-left: 4px solid var(--accent-color);
+}
+
+/* Status Summary */
+#delivery-status {
+    padding: 1rem;
+    background-color: var(--dark-grey);
+    border-radius: 4px;
+    margin-bottom: 1rem;
+    border: 1px solid var(--secondary-accent);
+}
+
+/* Pagination */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.pagination span {
+    color: var(--accent-color);
+    font-weight: bold;
+}
+
+/* Alert Banner */
+[role="alert"] {
+    background-color: rgba(241, 196, 15, 0.1) !important;
+    border: 1px solid var(--warning-color) !important;
+    color: var(--warning-color) !important;
+}
+
+/* Responsive adjustments */
+@media (min-width: 769px) {
+    .filter-columns {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 2rem;
+    }
+    .mobile-only {
+        display: none;
+    }
+}
+
+@media (max-width: 768px) {
+    nav {
+        flex-direction: column;
+    }
+    
+    table {
+        display: block;
+        overflow-x: auto;
+    }
+
+    #filter-content {
+        display: none;
+    }
+
+    #filter-content.active {
+        display: block;
+    }
+
+    .filter-row-top {
+        display: block !important;
+        margin-bottom: 1rem;
+    }
+
+    .filter-toggle {
+        width: 100%;
+        text-align: left;
+        margin-bottom: 1rem;
+    }
+
+    .hamburger {
+        display: inline-block;
+        width: 20px;
+        height: 2px;
+        background: var(--bg-color);
+        position: relative;
+        vertical-align: middle;
+        margin-right: 10px;
+    }
+
+    .hamburger::before, .hamburger::after {
+        content: '';
+        width: 20px;
+        height: 2px;
+        background: var(--bg-color);
+        position: absolute;
+        left: 0;
+    }
+
+    .hamburger::before { top: -6px; }
+    .hamburger::after { bottom: -6px; }
+}

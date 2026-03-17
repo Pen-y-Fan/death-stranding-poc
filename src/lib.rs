@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use wasm_bindgen::prelude::*;
 #[cfg(target_arch = "wasm32")]
 use web_sys::{Storage, window};
@@ -17,17 +17,6 @@ const KEY_CATEGORIES: &str = "ds:delivery_categories";
 const KEY_ORDERS: &str = "ds:orders";
 const KEY_DELIVERIES: &str = "ds:deliveries";
 
-#[derive(Serialize, Deserialize)]
-struct DemoOrder {
-    id: u32,
-    description: String,
-}
-
-#[derive(Serialize, Deserialize)]
-struct DemoDelivery {
-    order_id: u32,
-    status: String, // e.g., "pending", "in_transit", "delivered"
-}
 
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
@@ -65,6 +54,7 @@ pub fn get_schema_version() -> String {
             Err(_) => String::new(),
         };
     }
+    #[cfg(not(target_arch = "wasm32"))]
     String::new()
 }
 
@@ -139,6 +129,7 @@ pub fn get_districts() -> String {
             Err(_) => "[]".into(),
         };
     }
+    #[cfg(not(target_arch = "wasm32"))]
     "[]".into()
 }
 
@@ -155,6 +146,7 @@ pub fn get_locations() -> String {
             Err(_) => "[]".into(),
         };
     }
+    #[cfg(not(target_arch = "wasm32"))]
     "[]".into()
 }
 
@@ -213,6 +205,7 @@ pub fn get_delivery_categories() -> String {
             Err(_) => "[]".into(),
         };
     }
+    #[cfg(not(target_arch = "wasm32"))]
     "[]".into()
 }
 
@@ -229,16 +222,20 @@ pub fn get_orders() -> String {
             Err(_) => "[]".into(),
         };
     }
+    #[cfg(not(target_arch = "wasm32"))]
     "[]".into()
 }
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub fn import_deliveries(json: &str) -> Result<(), String> {
     let deliveries: Vec<models::Delivery> = parse_json_vec(json)?;
+    let orders = load_orders_from_storage();
+    let filtered = logic_import_deliveries(&orders, deliveries);
+
     #[cfg(target_arch = "wasm32")]
     {
         safe_local_storage()?
-            .set_item(KEY_DELIVERIES, &serde_json::to_string(&deliveries).unwrap())
+            .set_item(KEY_DELIVERIES, &serde_json::to_string(&filtered).unwrap())
             .map_err(|_| "failed to persist deliveries".to_string())?;
     }
     Ok(())
@@ -257,6 +254,7 @@ pub fn export_deliveries() -> String {
             Err(_) => "[]".into(),
         };
     }
+    #[cfg(not(target_arch = "wasm32"))]
     "[]".into()
 }
 
@@ -319,6 +317,14 @@ fn load_deliveries_from_storage() -> Vec<models::Delivery> {
     }
 }
 
+fn logic_import_deliveries(orders: &[models::Order], mut deliveries: Vec<models::Delivery>) -> Vec<models::Delivery> {
+    // Filter to only include deliveries for valid orders that exist in our system
+    if !orders.is_empty() {
+        deliveries.retain(|d| orders.iter().any(|o| o.number == d.order_number));
+    }
+    deliveries
+}
+
 #[cfg(target_arch = "wasm32")]
 fn save_deliveries_to_storage(deliveries: &[models::Delivery]) -> Result<(), String> {
     safe_local_storage()?
@@ -367,9 +373,14 @@ fn get_active_delivery_mut<'a>(
     })
 }
 
-fn make_new_delivery(order_number: u32, status: models::DeliveryStatus) -> models::Delivery {
+fn make_new_delivery(
+    deliveries: &[models::Delivery],
+    order_number: u32,
+    status: models::DeliveryStatus,
+) -> models::Delivery {
+    let next_id = deliveries.iter().map(|d| d.id).max().unwrap_or(0) + 1;
     models::Delivery {
-        id: order_number, // simple id for PoC; in real app use UUID/sequence
+        id: next_id,
         order_number,
         status,
         location_id: None,
@@ -391,6 +402,7 @@ fn logic_take_order(
         return Err("delivery already active or stored for this order".into());
     }
     deliveries.push(make_new_delivery(
+        deliveries,
         order_number,
         models::DeliveryStatus::InProgress,
     ));
@@ -448,6 +460,7 @@ fn logic_make_delivery(
     let active = get_active_delivery_mut(deliveries, order_number).is_some();
     if !active {
         deliveries.push(make_new_delivery(
+            deliveries,
             order_number,
             models::DeliveryStatus::InProgress,
         ));
@@ -503,7 +516,11 @@ fn logic_bulk_accept(
             continue;
         }
         if !has_active_or_stored(deliveries, n) {
-            deliveries.push(make_new_delivery(n, models::DeliveryStatus::InProgress));
+            deliveries.push(make_new_delivery(
+                deliveries,
+                n,
+                models::DeliveryStatus::InProgress,
+            ));
             created += 1;
         }
     }
@@ -521,7 +538,11 @@ fn logic_bulk_complete(
             continue;
         }
         if get_mut_delivery(deliveries, n).is_none() {
-            deliveries.push(make_new_delivery(n, models::DeliveryStatus::InProgress));
+            deliveries.push(make_new_delivery(
+                deliveries,
+                n,
+                models::DeliveryStatus::InProgress,
+            ));
         }
         let _ = logic_make_delivery(orders, deliveries, n)?;
         completed += 1;
@@ -667,11 +688,6 @@ pub fn bulk_complete(order_numbers: Vec<u32>) -> Result<String, String> {
     res
 }
 
-#[cfg(target_arch = "wasm32")]
-fn local_storage() -> Storage {
-    // Kept for backward-compat in internal calls; may panic if storage unavailable.
-    window().unwrap().local_storage().unwrap().unwrap()
-}
 
 #[cfg(target_arch = "wasm32")]
 fn safe_local_storage() -> Result<Storage, String> {
@@ -731,7 +747,7 @@ pub fn query_orders(
         let deliveries = load_deliveries_from_storage();
         let locations = load_locations_from_storage();
 
-        let mut filter: OrdersFilter = match filter_json.as_ref() {
+        let filter: OrdersFilter = match filter_json.as_ref() {
             Some(s) if !s.is_empty() => serde_json::from_str(s).unwrap_or_default(),
             _ => OrdersFilter::default(),
         };
