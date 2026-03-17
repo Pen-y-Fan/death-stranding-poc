@@ -33,11 +33,9 @@ jobs:
 
       - name: Build (wasm-pack)
         run: |
-          # wasm-pack build --target web --release
-          # Manual build to control flags if needed, or stick to wasm-pack but maybe add environment variables
-          # Some versions of wasm-bindgen enable externref by default which can cause issues in some browsers or environments
-          # if not properly handled by the loader.
-          wasm-pack build --target web --release -- --features wasm-bindgen/std
+          # Disable reference-types (externref) to avoid RangeError: WebAssembly.Table.grow failed
+          # and ensure compatibility across environments.
+          RUSTFLAGS="-C target-feature=-reference-types" wasm-pack build --target web --release
 
       - name: Minify index.html
         run: |
