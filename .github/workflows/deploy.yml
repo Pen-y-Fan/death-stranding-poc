@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 permissions:
   pages: write
@@ -31,7 +32,17 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y binaryen
 
       - name: Build (wasm-pack)
-        run: wasm-pack build --target web --release
+        run: |
+          # wasm-pack build --target web --release
+          # Manual build to control flags if needed, or stick to wasm-pack but maybe add environment variables
+          # Some versions of wasm-bindgen enable externref by default which can cause issues in some browsers or environments
+          # if not properly handled by the loader.
+          wasm-pack build --target web --release -- --features wasm-bindgen/std
+
+      - name: Minify index.html
+        run: |
+          npx html-minifier-terser --collapse-whitespace --remove-comments --remove-optional-tags --remove-redundant-attributes --remove-script-type-attributes --remove-tag-whitespace --use-short-doctype index.html -o index.min.html
+          mv index.min.html index.html
 
       - name: Prepare GitHub Pages deployment
         run: |
@@ -39,6 +50,7 @@ jobs:
           cp -R pkg docs/
           cp -R data docs/
           cp index.html docs/
+          cp styles.css docs/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

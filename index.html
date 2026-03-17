@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <title>Death Stranding PoC</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="./styles.css">
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
@@ -137,6 +137,8 @@
         get_dashboard_summary,
         export_deliveries
     } from './pkg/death_stranding_poc.js';
+
+    console.log('Modules imported, calling init()...');
 
     const orderListDiv = document.getElementById('order-list');
     const statusDiv = document.getElementById('delivery-status');
@@ -706,6 +708,7 @@
 
     init()
         .then(async () => {
+            console.log('WASM module initialized successfully');
             try {
                 initialize();
             } catch (e) {
@@ -728,7 +731,14 @@
         })
         .catch(err => {
             console.error('WASM init failed', err);
-            orderListDiv.textContent = 'Failed to initialize WASM module. See console for details.';
+            // Provide more user-friendly error details if available
+            let msg = 'Failed to initialize WASM module.';
+            if (err instanceof RangeError && err.message.includes('Table.grow')) {
+                 msg += ' (RangeError: WebAssembly.Table.grow failed). This can occur if the browser environment has strict memory limits or issues with the WASM binary features.';
+            } else if (err.toString().includes('404')) {
+                 msg += ' (Network Error: File not found). Make sure /pkg/ folder is correctly deployed.';
+            }
+            orderListDiv.textContent = msg + ' See console for details.';
         });
 
     function setupNav() {
