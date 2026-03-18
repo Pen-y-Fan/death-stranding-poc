@@ -85,6 +85,7 @@ See docs/manual-user.md and docs/description.md for detailed usage and domain co
     - Optional local server: cargo install basic-http-server
 2. Build for web:
     - wasm-pack build --target web --release
+    - *Note*: If you encounter `RangeError: WebAssembly.Table.grow failed` in some browsers, the JS glue may need a patch to disable `reference-types`. The GitHub Action handles this automatically.
 3. Serve the project root (so ./index.html can find ./pkg):
     - basic-http-server .
     - then open http://localhost:4000
