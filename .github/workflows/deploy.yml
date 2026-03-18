@@ -13,6 +13,8 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
       - uses: actions/checkout@v4
@@ -33,9 +35,14 @@ jobs:
 
       - name: Build (wasm-pack)
         run: |
-          # Disable reference-types (externref) to avoid RangeError: WebAssembly.Table.grow failed
-          # and ensure compatibility across environments.
-          RUSTFLAGS="-C target-feature=-reference-types" wasm-pack build --target web --release
+          # The previous build failed with:
+          # error: failed to find the `__wbindgen_externref_table_dealloc` function
+          # while using RUSTFLAGS="-C target-feature=-reference-types".
+          # Since we are already patching the JS glue to handle table growth and 
+          # initialization issues, we can try building without disabling reference-types 
+          # explicitly via RUSTFLAGS to avoid these symbol-finding errors.
+          wasm-pack build --target web --release
+          
           # Patch the JS glue to remove __wbindgen_init_externref_table if it exists
           # and prevent RangeError: WebAssembly.Table.grow(): failed to grow table by 4
           # We use a perl regex to handle the multi-line/greedy match of the function body
