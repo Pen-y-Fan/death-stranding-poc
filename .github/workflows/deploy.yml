@@ -36,6 +36,12 @@ jobs:
           # Disable reference-types (externref) to avoid RangeError: WebAssembly.Table.grow failed
           # and ensure compatibility across environments.
           RUSTFLAGS="-C target-feature=-reference-types" wasm-pack build --target web --release
+          # Patch the JS glue to remove __wbindgen_init_externref_table if it exists
+          # and prevent RangeError: WebAssembly.Table.grow(): failed to grow table by 4
+          # We use a perl regex to handle the multi-line/greedy match of the function body
+          perl -0777 -pi -e 's/imports\.wbg\.__wbindgen_init_externref_table = function\(\) \{.*?\};/imports.wbg.__wbindgen_init_externref_table = function() {};/gs' pkg/death_stranding_poc.js
+          # Note: The above patch is a targeted fix for the reported issue in environments 
+          # where wasm-bindgen defaults to enabling reference-types.
 
       - name: Minify index.html
         run: |
