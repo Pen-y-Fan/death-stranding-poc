@@ -46,11 +46,12 @@ jobs:
           # Patch the JS glue to remove __wbindgen_init_externref_table if it exists
           # and prevent RangeError: WebAssembly.Table.grow(): failed to grow table by 4
           # We use a perl regex to handle the multi-line/greedy match of the function body
-          perl -0777 -pi -e 's/imports\.wbg\.__wbindgen_init_externref_table = function\(\) \{.*?\};/imports.wbg.__wbindgen_init_externref_table = function() {};/gs' pkg/death_stranding_poc.js
+          # Note: The property might be in an object literal (wasm-bindgen --target web style)
+          perl -0777 -pi -e 's/__wbindgen_init_externref_table: function\(\) \{.*?\}/__wbindgen_init_externref_table: function() {}/gs' pkg/death_stranding_poc.js
           
           # Patch addToExternrefTable0 to ensure the table is large enough before set()
           # This prevents RangeError: WebAssembly.Table.set(): invalid address
-          perl -0777 -pi -e 's/function addToExternrefTable0\(obj\) \{\n    const idx = wasm\.__externref_table_alloc\(\);\n    wasm\.__wbindgen_externrefs\.set\(idx, obj\);/function addToExternrefTable0(obj) {\n    const idx = wasm.__externref_table_alloc();\n    if (idx >= wasm.__wbindgen_externrefs.length) { wasm.__wbindgen_externrefs.grow(idx - wasm.__wbindgen_externrefs.length + 1); }\n    wasm.__wbindgen_externrefs.set(idx, obj);/gs' pkg/death_stranding_poc.js
+          perl -0777 -pi -e 's/function addToExternrefTable0\(obj\) \{.*?const idx = wasm\.__externref_table_alloc\(\);.*?wasm\.__wbindgen_externrefs\.set\(idx, obj\);/function addToExternrefTable0(obj) {\n    const idx = wasm.__externref_table_alloc();\n    if (idx >= wasm.__wbindgen_externrefs.length) { wasm.__wbindgen_externrefs.grow(idx - wasm.__wbindgen_externrefs.length + 1); }\n    wasm.__wbindgen_externrefs.set(idx, obj);/gs' pkg/death_stranding_poc.js
 
           # Note: The above patch is a targeted fix for the reported issue in environments 
           # where wasm-bindgen defaults to enabling reference-types.
