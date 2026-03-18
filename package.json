@@ -1,0 +1,10 @@
+{
+  "name": "death-stranding-poc",
+  "version": "0.1.0",
+  "description": "Death Stranding PoC",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests_js/*.test.js"
+  },
+  "devDependencies": {}
+}

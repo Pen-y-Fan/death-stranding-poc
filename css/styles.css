@@ -13,7 +13,7 @@
 body {
     background-color: var(--bg-color);
     color: var(--text-color);
-    font-family: var(--font-main);
+    font-family: var(--font-main), serif;
     margin: 0;
     padding: 0;
     line-height: 1.6;

@@ -19,55 +19,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          target: wasm32-unknown-unknown
-          override: true
-
-      - name: Install wasm-pack
-        run: cargo install wasm-pack
-
-      - name: Install wasm-opt (binaryen)
-        run: sudo apt-get update && sudo apt-get install -y binaryen
-
-      - name: Build (wasm-pack)
-        run: |
-          # The previous build failed with:
-          # error: failed to find the `__wbindgen_externref_table_dealloc` function
-          # while using RUSTFLAGS="-C target-feature=-reference-types".
-          # Since we are already patching the JS glue to handle table growth and 
-          # initialization issues, we can try building without disabling reference-types 
-          # explicitly via RUSTFLAGS to avoid these symbol-finding errors.
-          wasm-pack build --target web --release
-          
-          # Patch the JS glue to remove __wbindgen_init_externref_table if it exists
-          # and prevent RangeError: WebAssembly.Table.grow(): failed to grow table by 4
-          # We use a perl regex to handle the multi-line/greedy match of the function body
-          # Note: The property might be in an object literal (wasm-bindgen --target web style)
-          perl -0777 -pi -e 's/__wbindgen_init_externref_table: function\(\) \{.*?\}/__wbindgen_init_externref_table: function() {}/gs' pkg/death_stranding_poc.js
-          
-          # Patch addToExternrefTable0 to ensure the table is large enough before set()
-          # This prevents RangeError: WebAssembly.Table.set(): invalid address
-          perl -0777 -pi -e 's/function addToExternrefTable0\(obj\) \{.*?const idx = wasm\.__externref_table_alloc\(\);.*?wasm\.__wbindgen_externrefs\.set\(idx, obj\);/function addToExternrefTable0(obj) {\n    const idx = wasm.__externref_table_alloc();\n    if (idx >= wasm.__wbindgen_externrefs.length) { wasm.__wbindgen_externrefs.grow(idx - wasm.__wbindgen_externrefs.length + 1); }\n    wasm.__wbindgen_externrefs.set(idx, obj);/gs' pkg/death_stranding_poc.js
-
-          # Note: The above patch is a targeted fix for the reported issue in environments 
-          # where wasm-bindgen defaults to enabling reference-types.
-
       - name: Minify index.html
         run: |
           npx html-minifier-terser --collapse-whitespace --remove-comments --remove-optional-tags --remove-redundant-attributes --remove-script-type-attributes --remove-tag-whitespace --use-short-doctype index.html -o index.min.html
           mv index.min.html index.html
 
+      - name: Run JS Tests
+        run: npm test
+
       - name: Prepare GitHub Pages deployment
         run: |
           mkdir -p docs
-          cp -R pkg docs/
+          cp -R js docs/
+          cp -R css docs/
           cp -R data docs/
           cp index.html docs/
-          cp styles.css docs/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
