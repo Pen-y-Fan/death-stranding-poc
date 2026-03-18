@@ -1,20 +1,23 @@
-use death_stranding_poc::models::{Order, validate_orders};
+import './setup.js';
+import { test } from 'node:test';
+import assert from 'node:assert';
+import * as poc from '../js/death_stranding_poc.js';
 
-#[test]
-fn validate_orders_ok() {
-    let orders = vec![
-        Order {
+test('validate_orders_ok', () => {
+    localStorage.clear();
+    const orders = [
+        {
             number: 100,
-            name: "Test".into(),
+            name: "Test",
             client_id: 1,
             destination_id: 2,
             delivery_category_id: 1,
             max_likes: 1.0,
             weight: 0.0,
         },
-        Order {
+        {
             number: 101,
-            name: "Another".into(),
+            name: "Another",
             client_id: 1,
             destination_id: 2,
             delivery_category_id: 2,
@@ -22,24 +25,25 @@ fn validate_orders_ok() {
             weight: 10.0,
         },
     ];
-    assert!(validate_orders(&orders).is_ok());
-}
+    // In JS, import_orders performs validation and throws if invalid
+    assert.doesNotThrow(() => poc.import_orders(JSON.stringify(orders)));
+});
 
-#[test]
-fn validate_orders_duplicate_number() {
-    let orders = vec![
-        Order {
+test('validate_orders_duplicate_number', () => {
+    localStorage.clear();
+    const orders = [
+        {
             number: 100,
-            name: "A".into(),
+            name: "A",
             client_id: 1,
             destination_id: 2,
             delivery_category_id: 1,
             max_likes: 1.0,
             weight: 0.0,
         },
-        Order {
+        {
             number: 100,
-            name: "B".into(),
+            name: "B",
             client_id: 1,
             destination_id: 2,
             delivery_category_id: 2,
@@ -47,5 +51,5 @@ fn validate_orders_duplicate_number() {
             weight: 10.0,
         },
     ];
-    assert!(validate_orders(&orders).is_err());
-}
+    assert.throws(() => poc.import_orders(JSON.stringify(orders)), /Duplicate order number: 100/);
+});

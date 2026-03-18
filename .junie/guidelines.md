@@ -1,125 +1,71 @@
-Project-specific development guidelines
+Project-specific development guidelines (JavaScript-native version)
 
 Context
-- This repository is a Rust -> WebAssembly (WASM) proof-of-concept with a very thin JS/HTML shell (index.html) and Rust business logic in src/lib.rs exposed via wasm-bindgen.
-- Deployment target is GitHub Pages. The current index.html expects a wasm-bindgen/wasm-pack style JS wrapper at ./pkg/death_stranding_poc.js.
+- This repository is a JavaScript-based proof-of-concept for the "Death Stranding" delivery mechanics.
+- Originally a Rust -> WASM project, it has been fully ported to a pure JavaScript module (`js/death_stranding_poc.js`) for better browser compatibility and stability.
+- Deployment target is GitHub Pages. The `index.html` imports the core logic from `./js/death_stranding_poc.js`.
 
-Build and configuration
-1) Toolchain prerequisites
-- rustup target add wasm32-unknown-unknown
-- Install wasm-pack for bundling and generating the ./pkg JS shim expected by index.html:
-  cargo install wasm-pack
-- Optional: a static HTTP server for local dev (choose one):
-  cargo install basic-http-server
-  or brew install http-server (Node), or use python3 -m http.server
+Project Structure
+- `index.html`: Main entry point and UI.
+- `js/death_stranding_poc.js`: Core business logic, models, and state management (ES module).
+- `css/styles.css`: Application styling.
+- `tests_js/`: JavaScript test suite using Node.js's built-in test runner.
+- `data/`: Sample data and configuration schemas.
 
-2) Crate type and dependencies
-- For WebAssembly export, library should be built as a cdylib. If not already present, add the following to Cargo.toml:
-  [lib]
-  crate-type = ["cdylib", "rlib"]
+Build and Configuration
+1) Development Workflow
+- No compilation step is required. Changes to `js/` or `css/` are immediately reflected upon browser refresh.
+- Use a simple HTTP server to serve the project root (to handle ES module imports correctly):
+  - `python3 -m http.server`
+  - `npx http-server .`
+  - `basic-http-server .` (if installed via Cargo)
 
-- web-sys features are gated at compile time. src/lib.rs uses window()/local_storage()/Storage when built for wasm32. To avoid link errors in wasm builds, enable the necessary web-sys features in Cargo.toml (this repo does not currently set them):
-  [dependencies.web-sys]
-  version = "0.3.78"
-  features = [
-      "Window",
-      "Storage",
-  ]
-
-3) Building for the web
-- The simplest path that matches index.html’s import is wasm-pack:
-  wasm-pack build --target web --release
-  This generates ./pkg/{death_stranding_poc_bg.wasm, death_stranding_poc.js, ...} which index.html imports.
-
-- If you prefer raw cargo builds, you’ll only get a .wasm artifact; you’ll also need to generate or handcraft the JS glue expected by index.html, or switch your index.html to load the .wasm manually. Given the current index.html, use wasm-pack.
-
-4) Local run
-- After wasm-pack build --target web --release, serve the project root (so ./index.html can find ./pkg):
-  basic-http-server .
-  # then visit http://127.0.0.1:4000
+2) Dependencies
+- Frontend: Zero-dependency (pure JS/CSS/HTML).
+- Development/Testing: Node.js (v20+) is required for running the test suite.
+- `package.json` defines the `test` script.
 
 Testing
-1) Test strategy
-- Native tests should not pull in web-sys/browser APIs. src/lib.rs already guards browser-only code behind cfg(target_arch = "wasm32"); native cargo test works without a browser.
-- For unit tests touching pure logic, keep them in src or tests and avoid wasm-specific dependencies. For wasm-boundary behavior, prefer headless browser tests (e.g., wasm-bindgen-test) run under wasm32.
+1) Test Strategy
+- The core business logic is tested in a Node.js environment.
+- Browser-specific APIs (like `localStorage`) are mocked in `tests_js/setup.js`.
+- Tests are located in `tests_js/*.test.js`.
 
-2) Running native tests (what currently works)
-- Commands:
-  cargo test
-- Notes:
-  - The repo compiles natively thanks to cfg gating in src/lib.rs; web APIs are no-ops in native builds.
+2) Running Tests
+- Use npm (recommended):
+  `npm test`
+- Or run directly via Node.js:
+  `node --test tests_js/*.test.js`
 
-3) Adding a new native test
-- Create tests/<name>.rs with standard #[test] functions, e.g.:
-  // tests/example.rs
-  #[test]
-  fn arithmetic_works() {
-      assert_eq!(2 + 2, 4);
-  }
-- Run: cargo test
-
-4) Optional: wasm tests (if needed later)
-- Add dependency:
-  wasm-bindgen-test = "0.3"
-- In tests/wasm.rs:
-  use wasm_bindgen_test::*;
-  wasm_bindgen_test_configure!(run_in_browser);
-  #[wasm_bindgen_test]
-  fn it_works_in_browser() {
-      assert_eq!(1 + 1, 2);
-  }
-- Run:
-  rustup target add wasm32-unknown-unknown
-  cargo test --target wasm32-unknown-unknown --no-default-features
-  Or use wasm-pack test --headless --chrome (recommended if browsers are available in CI).
+3) Adding a New Test
+- Create a new file in `tests_js/` with the `.test.js` suffix.
+- Use the `node:test` and `node:assert` modules.
+- Ensure `setup.js` is imported if browser mocks are needed.
 
 Deployment (GitHub Pages)
-- Current workflow (.github/workflows/deploy.yml) builds with cargo build --target wasm32-unknown-unknown and copies only the .wasm into docs/, but index.html imports ./pkg/death_stranding_poc.js which is not produced by cargo alone. Without the JS glue, the page will fail to load.
-- Recommended adjustment:
-  - Use wasm-pack to generate ./pkg and deploy index.html + pkg/ + any assets.
-  Example steps inside the workflow job:
-    - uses: actions/checkout@v4
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
-        target: wasm32-unknown-unknown
-        override: true
-    - name: Install wasm-pack
-      run: cargo install wasm-pack
-    - name: Build (wasm-pack)
-      run: wasm-pack build --target web --release
-    - name: Prepare artifact
-      run: |
-        mkdir -p docs
-        cp -R pkg docs/
-        cp index.html docs/
-    - name: Upload artifact
-      uses: actions/upload-pages-artifact@v3
-      with:
-        path: docs
-    - name: Deploy
-      uses: actions/deploy-pages@v4
+- The project is deployed via GitHub Actions (`.github/workflows/deploy.yml`).
+- The workflow:
+  1. Sets up Node.js.
+  2. Runs the JS test suite (`npm test`).
+  3. Prepares a `docs/` artifact containing:
+     - `index.html`
+     - `js/` directory
+     - `css/` directory
+     - `data/` directory (if applicable)
+  4. Deploys the artifact to GitHub Pages.
 
-- Alternatively, switch index.html to raw .wasm loading and keep the cargo-only build, but that requires custom JS loader code; wasm-pack is simpler and standard.
+Code Style and Structure
+- Use modern ES6+ JavaScript.
+- Maintain the module-based architecture (exporting functions/classes from `js/death_stranding_poc.js`).
+- Follow the existing naming conventions (e.g., snake_case for internal logic parameters where it matches the original Rust implementation, camelCase for UI-bound variables).
+- Keep the UI logic in `index.html` and business logic in `js/death_stranding_poc.js` separate.
 
-Runtime/Debugging notes
-- The Rust code exposes initialize, take_order, and deliver_order when compiled to wasm32. In native builds these are no-op stubs (guarded by cfg) so cargo test remains fast and hermetic.
-- LocalStorage access is done via web-sys::window().local_storage(). Make sure web-sys features (Window, Storage) are enabled for wasm builds (see dependencies above), otherwise linker errors will occur.
-- alert is provided via #[wasm_bindgen] extern "C" for wasm; in native builds a no-op stub is compiled instead.
+Runtime/Debugging Notes
+- The module exports an `init` function (default export) that handles initial data loading and state setup.
+- `localStorage` is used for persisting delivery orders and state between sessions.
+- Check the browser console for detailed logs from the JS module.
 
-Code style and structure
-- Edition: 2024 (per Cargo.toml). Use rustfmt with default settings; no custom rustfmt.toml present.
-- Keep browser-bound code behind cfg(target_arch = "wasm32"). Provide graceful no-op stubs for native testability.
-- Prefer serde for (de)serialization at the WASM boundary; validate JSON in browser before persisting to localStorage.
-- If you add new web-sys APIs, explicitly enable the corresponding features in Cargo.toml to avoid large transitive builds and feature-missing errors.
-
-Quickstart summary
-- Build for web: wasm-pack build --target web --release
-- Serve locally: basic-http-server . (open http://127.0.0.1:4000)
-- Run tests: cargo test
-- Add a test: create tests/example.rs and run cargo test
-
-Known gaps to resolve in repo (actionable):
-- Enable web-sys features (Window, Storage) in Cargo.toml for wasm builds.
-- Update the GitHub Actions workflow to produce and deploy ./pkg via wasm-pack, or change index.html to load raw .wasm.
+Quickstart Summary
+- Serve locally: `npx http-server .` (visit http://localhost:8080)
+- Run tests: `npm test`
+- Add a test: Create `tests_js/my_feature.test.js` and use `node:test`.

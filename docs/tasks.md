@@ -7,18 +7,18 @@ codebase. Each item starts with a checkbox [ ] to track completion. Tasks cover 
 modeling, WASM boundary, business logic, UI shell, and testing. Where relevant, required input data is identified (e.g.,
 JSON files for Orders, Locations, etc.).
 
-1. [x] Architecture and build pipeline
-    1. [x] Switch CI/CD (GitHub Pages workflow) to wasm-pack to generate ./pkg JS glue expected by index.html. (Build
-       ./pkg and deploy index.html + pkg/)
-    2. [x] Ensure toolchain steps in CI: install wasm32-unknown-unknown target and install wasm-pack.
-    3. [x] Adjust workflow to publish docs/ with index.html and pkg/ using actions/upload-pages-artifact +
+13. [x] Build and deploy process (pure JS).
+    1. [x] Switch CI/CD (GitHub Pages workflow) to publish the ./js and ./css directories. (Build
+       ./js, ./css and deploy index.html + js/ + css/)
+    2. [x] Removed Rust toolchain from CI (transitioned to pure JS).
+    3. [x] Adjust workflow to publish docs/ with index.html, js/ and css/ using actions/upload-pages-artifact +
        actions/deploy-pages.
-    4. [x] Document local dev quickstart in README: wasm-pack build --target web --release; basic-http-server .
+    4. [x] Document local dev quickstart in README: serve the root directory and access index.html.
 
-2. [x] Crate configuration and dependencies
-    1. [x] Confirm [lib] crate-type includes ["cdylib", "rlib"].
-    2. [x] Ensure web-sys features include Window and Storage (already present); add any new APIs explicitly when used.
-    3. [x] Pin compatible versions for wasm-bindgen, web-sys, serde/serde_json; document upgrade path.
+18. [x] Project structure (pure JS)
+    1. [x] Removed obsolete Cargo.toml and Cargo.lock.
+    2. [x] Removed src/ and tests/ (Rust source).
+    3. [x] Removed target/ directory.
 
 3. [x] Data model definition (align with manual-user.md and description.md)
     1. [x] Define core structs with serde support:
@@ -33,8 +33,8 @@ JSON files for Orders, Locations, etc.).
        `docs/schemas/examples`).
     3. [x] Validate constraints (e.g., Order.number unique; required fields) at import time.
 
-4. [x] Data loading and persistence (WASM boundary)
-    1. [x] Implement JSON import functions exposed via wasm-bindgen to load master data into localStorage:
+4. [x] Data loading and persistence (Browser storage)
+    1. [x] Implement JSON import functions to load master data into localStorage:
        districts.json, locations.json, delivery_categories.json, orders.json.
     2. [x] Implement getters to read current state from localStorage with robust error handling.
     3. [x] Implement JSON export/backup for deliveries per user.
@@ -53,43 +53,43 @@ JSON files for Orders, Locations, etc.).
     8. [x] Enforce status transition rules and edge cases; record timestamps in Europe/London (or user tz when
        available).
 
-6. [x] Filtering, sorting, and search (data services)
-    1. [x] Implement pure-Rust filter functions for Orders by: District, Client, Destination, DeliveryCategory,
+6. [x] Filtering, sorting, and search (Data services)
+    1. [x] Implement JS filter functions for Orders by: District, Client, Destination, DeliveryCategory,
        DeliveryStatus (for current user), Completion status.
-    2. [x] Implement sort/search helpers (by number, name, weight, max_likes) to keep JS layer thin.
-    3. [x] Provide WASM-exposed functions to query paginated/filtered lists suitable for a simple UI.
+    2. [x] Implement sort/search helpers (by number, name, weight, max_likes).
+    3. [x] Provide JS functions to query paginated/filtered lists.
 
-7. [x] UI shell integration (index.html minimal enhancements)
-    1. [x] Replace placeholder table with functions that call new WASM APIs for lists and actions.
+7. [x] UI shell integration
+    1. [x] Use JS module for lists and actions.
     2. [x] Add simple top navigation tabs: Dashboard, Orders, Deliveries, Locations (static HTML/JS).
     3. [x] Wire up per-row actions: Take, Store (with prompt for location/comment), Continue, Make delivery, Fail, Lost.
     4. [x] Add basic filters UI to Orders: dropdowns for District/Client/Destination/Category, radio for Delivery Status
        and Completion.
 
-8. [x] Charts and dashboard (optional PoC scope)
-    1. [x] Provide WASM-exposed summary endpoints for counts by region and location groups (Central A–E/F–M/N–W; East).
+8. [x] Charts and dashboard
+    1. [x] Provide JS summary endpoints for counts by region and location groups.
     2. [x] Render simple doughnut/progress charts in JS (or text summaries as PoC).
 
 9. [x] Navigation between related records
-    1. [x] Provide WASM data lookups for relation expansion (e.g., get_location(id), get_district(id)).
+    1. [x] Provide JS data lookups for relation expansion (e.g., get_location(id), get_district(id)).
     2. [x] Update UI to make client/destination clickable to filter by client/destination.
     3. [x] Locations: add button to swap client/destination filter.
 
 10. [x] Validation and error handling
-    1. [x] Validate inputs on all WASM-exposed functions; return Result-like error strings across the boundary.
+    1. [x] Validate inputs on all JS functions; return appropriate error messages.
     2. [x] Handle localStorage errors (quota, unavailable) gracefully.
 
-11. [x] Testing (native and wasm)
-    1. [x] Add native unit tests for pure logic (status transitions, filtering, sorting, validation).
-    2. [x] Add wasm-bindgen-test for WASM boundary where feasible (optional headless).
-    3. [x] Ensure existing native build remains working under cfg(target_arch) gating.
-    4. [x] Provide test fixtures (JSON) for Orders/Locations/etc.
-    5. [x] Add tests for bulk actions edge cases (e.g., duplicate accept, complete without existing delivery).
+11. [x] Testing
+    1. [x] Ported Rust unit tests to JavaScript using `node:test`.
+    2. [x] Implement localStorage mock for JS test environment.
+    3. [x] Add JS tests for status transitions, filtering, sorting, and validation.
+    4. [x] Update CI/CD to run JS tests using `npm test`.
+    5. [x] Removed legacy Rust tests.
 
 12. [x] Deployment (GitHub Pages)
-    1. [x] Update .github/workflows/deploy.yml to wasm-pack build and publish docs/ with pkg/ and index.html.
+    1. [x] Update .github/workflows/deploy.yml to publish docs/ with js/, css/ and index.html.
     2. [x] Add a manual deployment note in README for GitHub Pages settings.
-    3. [x] Post-deploy smoke checklist: load page, verify pkg/death_stranding_poc.js exists, actions function.
+    3. [x] Post-deploy smoke checklist: load page, verify js/death_stranding_poc.js exists, actions function.
 
 13. [x] Required data (you can supply these as JSON files) (available in `data/*.json`)
     1. [x] districts.json: list of Districts with region names (East/Central/West).
@@ -105,13 +105,14 @@ JSON files for Orders, Locations, etc.).
     2. [x] Store timestamps in ISO 8601 UTC with separate display-timezone transformation in UI.
 
 15. [x] Documentation updates
-    1. [x] Update README with build/run/test instructions (wasm-pack, local server).
-    2. [x] Add brief API docs for exposed WASM functions.
+    1. [x] Update README with run/test instructions (local server).
+    2. [x] Document JS module API.
+    3. [x] Transition from Rust/WASM to pure JavaScript for browser compatibility.
     3. [x] Link to docs/manual-user.md and docs/description.md from README.
 
 16. [x] Performance and size (PoC-appropriate)
-    1. [x] Keep web-sys features minimal; audit features if adding new APIs.
-    2. [x] Release builds with wasm-opt (if available via wasm-pack) for smaller payloads.
+    1. [x] Optimized JS payload size by removing unused dependencies.
+    2. [x] Fast execution due to native JS browser optimization.
 
 17. [x] Accessibility and UX basics (PoC scope)
     1. [x] Ensure buttons have accessible labels; keyboard navigation for list actions.
