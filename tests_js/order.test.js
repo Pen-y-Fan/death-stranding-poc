@@ -3,6 +3,18 @@ import { test } from 'node:test';
 import assert from 'node:assert';
 import * as poc from '../js/death_stranding_poc.js';
 
+function order(n, client, dest) {
+    return {
+        number: n,
+        name: `Order ${n}`,
+        client_id: client,
+        destination_id: dest,
+        delivery_category_id: 1,
+        max_likes: 0.0,
+        weight: 0.0,
+    };
+}
+
 function sample_orders() {
     return [
         {
@@ -113,4 +125,22 @@ test('sort_and_search_and_paginate', () => {
     assert.strictEqual(result.total, 3);
     assert.strictEqual(result.items.length, 1);
     assert.strictEqual(result.items[0].number, 3); // A(1), B(2) are first page, Cargo(3) is second
+});
+
+test('bulk_accept_orders', () => {
+    localStorage.clear();
+    const orders = [order(1, 100, 200), order(2, 101, 201), order(3, 102, 202)];
+    poc.import_orders(JSON.stringify(orders));
+
+    // Accept duplicates should not create extras
+    let msg = poc.bulk_accept([1, 2, 1]);
+    assert.strictEqual(msg, "accepted 2");
+    let deliveries = JSON.parse(poc.export_deliveries());
+    assert.strictEqual(deliveries.length, 2);
+
+    // Accept including unknown order 999 is ignored
+    msg = poc.bulk_accept([2, 3, 999]);
+    assert.strictEqual(msg, "accepted 1"); // only 3 added
+    deliveries = JSON.parse(poc.export_deliveries());
+    assert.strictEqual(deliveries.length, 3);
 });

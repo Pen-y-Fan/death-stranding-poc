@@ -121,24 +121,8 @@ export function get_locations() {
     return get_storage_item(KEY_LOCATIONS, "[]");
 }
 
-export function get_location(id) {
-    const list = load_list(KEY_LOCATIONS);
-    const loc = list.find(l => l.id === id);
-    return loc ? JSON.stringify(loc) : "{}";
-}
-
-export function get_district(id) {
-    const list = load_list(KEY_DISTRICTS);
-    const d = list.find(it => it.id === id);
-    return d ? JSON.stringify(d) : "{}";
-}
-
 export function get_delivery_categories() {
     return get_storage_item(KEY_CATEGORIES, "[]");
-}
-
-export function get_orders() {
-    return get_storage_item(KEY_ORDERS, "[]");
 }
 
 export function import_deliveries(json) {
@@ -148,7 +132,7 @@ export function import_deliveries(json) {
         let filtered = deliveries;
         if (orders.length > 0) {
             const orderNums = new Set(orders.map(o => o.number));
-            filtered = deliveries.filter(d => orderNums.has(d.order_number || d.order_id));
+            filtered = deliveries.filter(d => orderNums.has(d.order_number));
         }
         save_list(KEY_DELIVERIES, filtered);
     } catch (e) {
@@ -344,6 +328,35 @@ export function bulk_complete(order_numbers) {
     return `completed ${completed}`;
 }
 
+export function delete_delivery(id) {
+    let list = load_list(KEY_DELIVERIES);
+    const initialLen = list.length;
+    list = list.filter(d => String(d.id) !== String(id));
+    if (list.length === initialLen) return false;
+    save_list(KEY_DELIVERIES, list);
+    return true;
+}
+
+export function bulk_delete_deliveries(ids) {
+    let list = load_list(KEY_DELIVERIES);
+    const initialLen = list.length;
+    const idsToDel = ids.map(i => String(i));
+    list = list.filter(d => !idsToDel.includes(String(d.id)));
+    save_list(KEY_DELIVERIES, list);
+    return initialLen - list.length;
+}
+
+export function update_delivery(id, status, comment) {
+    let list = load_list(KEY_DELIVERIES);
+    const d = list.find(it => String(it.id) === String(id));
+    if (!d) return false;
+    if (status) d.status = status;
+    if (comment !== undefined) d.comment = comment;
+    d.updated_at = now_iso_utc();
+    save_list(KEY_DELIVERIES, list);
+    return true;
+}
+
 export function query_orders(filter_json, page, per_page, sort_key, sort_dir, search) {
     const orders = load_list(KEY_ORDERS);
     const deliveries = load_list(KEY_DELIVERIES);
@@ -450,33 +463,67 @@ export function get_dashboard_summary() {
     const orderByNum = new Map(orders.map(o => [o.number, o]));
 
     const out = {
-        central_total: 0,
-        central_ae: 0,
-        central_fm: 0,
-        central_nw: 0,
-        east: 0,
-        west: 0
+        total_orders: orders.length,
+        completed_orders_total: 0,
+        status_counts: {
+            COMPLETE: 0,
+            InProgress: 0,
+            STORED: 0,
+            LOST: 0,
+            FAILED: 0
+        },
+        locations: {} // name -> { completed_in, total_in, completed_out, total_out, region }
     };
 
-    for (const d of deliveries) {
-        if (d.status !== DeliveryStatus.COMPLETE) continue;
-        const order = orderByNum.get(d.order_number);
-        if (!order) continue;
-        const loc = locById.get(order.destination_id);
-        if (!loc) continue;
-        const dist = distById.get(loc.district_id);
-        if (!dist) continue;
+    // Initialize locations
+    for (const order of orders) {
+        const clientLoc = locById.get(order.client_id);
+        const destLoc = locById.get(order.destination_id);
 
-        if (dist.region === "East") {
-            out.east++;
-        } else if (dist.region === "West") {
-            out.west++;
-        } else if (dist.region === "Central") {
-            out.central_total++;
-            const first = loc.name.trim().charAt(0).toUpperCase();
-            if (first >= 'A' && first <= 'E') out.central_ae++;
-            else if (first >= 'F' && first <= 'M') out.central_fm++;
-            else if (first >= 'N' && first <= 'W') out.central_nw++;
+        if (destLoc) {
+            const dist = distById.get(destLoc.district_id);
+            if (dist) {
+                if (!out.locations[destLoc.name]) {
+                    let region = dist.region;
+                    if (region === "West") region = "East";
+                    out.locations[destLoc.name] = { completed_in: 0, total_in: 0, completed_out: 0, total_out: 0, region: region };
+                }
+                out.locations[destLoc.name].total_in++;
+            }
+        }
+
+        if (clientLoc) {
+            const dist = distById.get(clientLoc.district_id);
+            if (dist) {
+                if (!out.locations[clientLoc.name]) {
+                    let region = dist.region;
+                    if (region === "West") region = "East";
+                    out.locations[clientLoc.name] = { completed_in: 0, total_in: 0, completed_out: 0, total_out: 0, region: region };
+                }
+                out.locations[clientLoc.name].total_out++;
+            }
+        }
+    }
+
+    const completedOrderNumbers = new Set();
+    for (const d of deliveries) {
+        const s = d.status;
+        out.status_counts[s] = (out.status_counts[s] || 0) + 1;
+
+        if (d.status === DeliveryStatus.COMPLETE && !completedOrderNumbers.has(d.order_number)) {
+            completedOrderNumbers.add(d.order_number);
+            out.completed_orders_total++;
+            const order = orderByNum.get(d.order_number);
+            if (order) {
+                const destLoc = locById.get(order.destination_id);
+                if (destLoc && out.locations[destLoc.name]) {
+                    out.locations[destLoc.name].completed_in++;
+                }
+                const clientLoc = locById.get(order.client_id);
+                if (clientLoc && out.locations[clientLoc.name]) {
+                    out.locations[clientLoc.name].completed_out++;
+                }
+            }
         }
     }
 
@@ -509,9 +556,106 @@ export function initUI() {
     const filterDestination = document.getElementById('filter-destination');
     const filterCategory = document.getElementById('filter-category');
     const filterSearch = document.getElementById('filter-search');
+    const deliverySearch = document.getElementById('delivery-search');
+    const btnClearDeliverySearch = document.getElementById('clear-delivery-search');
+    const btnBulkDeleteDeliveries = document.getElementById('btn-bulk-delete-deliveries');
+    const btnBulkAccept = document.getElementById('btn-bulk-accept');
+    const btnBulkComplete = document.getElementById('btn-bulk-complete');
+
+    if (btnBulkAccept) {
+        btnBulkAccept.addEventListener('click', () => {
+            const selected = Array.from(document.querySelectorAll('#order-list input[type="checkbox"]:checked'))
+                .map(cb => parseInt(cb.value, 10));
+            if (selected.length === 0) return alert('No orders selected');
+            bulk_accept(selected);
+            render();
+        });
+    }
+    if (btnBulkComplete) {
+        btnBulkComplete.addEventListener('click', () => {
+            const selected = Array.from(document.querySelectorAll('#order-list input[type="checkbox"]:checked'))
+                .map(cb => parseInt(cb.value, 10));
+            if (selected.length === 0) return alert('No orders selected');
+            bulk_complete(selected);
+            render();
+        });
+    }
+
+    document.querySelectorAll('.settings-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.settings-tab-btn').forEach(b => b.classList.remove('active-tab'));
+            btn.classList.add('active-tab');
+            document.querySelectorAll('.settings-panel').forEach(p => p.hidden = true);
+            const target = document.getElementById(btn.dataset.panel);
+            if (target) target.hidden = false;
+            renderSettingsResources();
+        });
+    });
+
+    if (deliverySearch) {
+        deliverySearch.addEventListener('input', renderDeliveries);
+    }
+    if (btnClearDeliverySearch) {
+        btnClearDeliverySearch.addEventListener('click', () => {
+            deliverySearch.value = '';
+            renderDeliveries();
+        });
+    }
+    if (btnBulkDeleteDeliveries) {
+        btnBulkDeleteDeliveries.addEventListener('click', () => {
+            const selected = Array.from(document.querySelectorAll('#delivery-list input[type="checkbox"]:checked'))
+                .map(cb => cb.value);
+            if (selected.length === 0) return alert('No deliveries selected');
+            if (confirm(`Delete ${selected.length} selected deliveries?`)) {
+                bulk_delete_deliveries(selected);
+                renderDeliveries();
+            }
+        });
+    }
 
     let currentPage = 1;
-    const perPage = 20;
+    const perPage = 30;
+
+    function formatDate(dateStr) {
+        if (!dateStr) return '—';
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return dateStr;
+        const day = String(d.getDate()).padStart(2, '0');
+        const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        const month = months[d.getMonth()];
+        const year = d.getFullYear();
+        const h = String(d.getHours()).padStart(2, '0');
+        const m = String(d.getMinutes()).padStart(2, '0');
+        const s = String(d.getSeconds()).padStart(2, '0');
+        return `${day} ${month} ${year} ${h}:${m}:${s}`;
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (ev) => {
+        if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
+        
+        const key = ev.key.toLowerCase();
+        if (key === 's') {
+            const takeBtn = document.querySelector('.card button[data-action="take"]');
+            if (takeBtn) { takeBtn.click(); return; }
+            const continueBtn = document.querySelector('.card button[data-action="continue"]');
+            if (continueBtn) { continueBtn.click(); return; }
+            const storeBtn = document.querySelector('.card button[data-action="store"]');
+            if (storeBtn) { storeBtn.click(); return; }
+        }
+        if (key === 'd') {
+            const btn = document.querySelector('.card button[data-action="deliver"]');
+            if (btn) btn.click();
+        }
+        if (key === 'l') {
+            const btn = document.querySelector('.card button[data-action="lost"]');
+            if (btn) btn.click();
+        }
+        if (key === 'f') {
+            const btn = document.querySelector('.card button[data-action="fail"]');
+            if (btn) btn.click();
+        }
+    });
 
     function getOrders() {
         try {
@@ -558,6 +702,10 @@ export function initUI() {
         const items = parsed.items || [];
         const deliveries = getDeliveries();
 
+        const showCategory = document.querySelector('input[name="field-toggle"][value="category"]')?.checked;
+        const showLikes = document.querySelector('input[name="field-toggle"][value="likes"]')?.checked;
+        const showWeight = document.querySelector('input[name="field-toggle"][value="weight"]')?.checked;
+
         // Build a simple table
         const locationsList = (() => {
             try {
@@ -567,8 +715,17 @@ export function initUI() {
             }
         })();
         const byId = new Map(locationsList.map(l => [l.id, l]));
-        let html = '<table border="1" cellpadding="6" cellspacing="0" role="grid" aria-label="Orders list">';
-        html += '<thead><tr><th scope="col">#</th><th scope="col">Name</th><th scope="col">Client</th><th scope="col">Destination</th><th scope="col">Status</th><th scope="col">Action</th></tr></thead><tbody>';
+
+        const categories = (() => {
+            try {
+                return JSON.parse(get_delivery_categories());
+            } catch {
+                return [];
+            }
+        })();
+        const catById = new Map(categories.map(c => [c.id, c]));
+
+        let html = '<div class="cards-container" role="list" aria-label="Orders list">';
         for (const it of items) {
             const o = {id: it.number, description: it.name};
             const deliveriesLocal = getDeliveries();
@@ -596,32 +753,70 @@ export function initUI() {
 
             const client = byId.get(it.client_id);
             const destination = byId.get(it.destination_id);
-            const clientCell = client ? `<a href="#" class="btn-link" data-show-location="${client.id}" data-kind="client">${client.name}</a>` : '';
-            const destCell = destination ? `<a href="#" class="btn-link" data-show-location="${destination.id}" data-kind="destination">${destination.name}</a>` : '';
+            const clientName = client ? client.name : (it.client_id || '');
+            const destName = destination ? destination.name : (it.destination_id || '');
+            const clientCell = client ? `<a href="#" class="btn-link" data-show-location="${client.id}" data-kind="client">${clientName}</a>` : clientName;
+            const destCell = destination ? `<a href="#" class="btn-link" data-show-location="${destination.id}" data-kind="destination">${destName}</a>` : destName;
+
+            const categoryName = catById.get(it.delivery_category_id)?.name || it.delivery_category_id;
 
             let actionHtml = '';
             if (!active) {
-                actionHtml = `<button data-action="take" data-id="${o.id}" type="button" aria-label="Take order ${o.id}">Start</button>`;
+                actionHtml = `<button data-action="take" data-id="${o.id}" type="button" aria-label="Take order ${o.id}" class="btn-full">Start</button>`;
             } else if (statusNorm === 'Stored') {
                 actionHtml = `
-                    <button data-action="continue" data-id="${o.id}" type="button" aria-label="Continue stored order ${o.id}">Continue</button>
-                    <button data-action="deliver" data-id="${o.id}" type="button" aria-label="Deliver order ${o.id}">Deliver</button>
-                    <button data-action="fail" data-id="${o.id}" type="button" aria-label="Fail order ${o.id}">Fail</button>
-                    <button data-action="lost" data-id="${o.id}" type="button" aria-label="Mark order ${o.id} as lost">Lost</button>`;
+                    <div class="btn-grid-3">
+                        <button data-action="continue" data-id="${o.id}" type="button" aria-label="Continue stored order ${o.id}">Continue</button>
+                        <button data-action="lost" data-id="${o.id}" type="button" aria-label="Mark order ${o.id} as lost">Lost</button>
+                        <button data-action="fail" data-id="${o.id}" type="button" aria-label="Fail order ${o.id}">Fail</button>
+                    </div>
+                    <button data-action="deliver" data-id="${o.id}" type="button" aria-label="Deliver order ${o.id}" class="btn-full">Deliver</button>`;
             } else if (statusNorm === 'In progress') {
                 actionHtml = `
-                    <button data-action="store" data-id="${o.id}" type="button" aria-label="Store order ${o.id} at a location">Store</button>
-                    <button data-action="deliver" data-id="${o.id}" type="button" aria-label="Deliver order ${o.id}">Deliver</button>
-                    <button data-action="fail" data-id="${o.id}" type="button" aria-label="Fail order ${o.id}">Fail</button>
-                    <button data-action="lost" data-id="${o.id}" type="button" aria-label="Mark order ${o.id} as lost">Lost</button>`;
+                    <div class="btn-grid-3">
+                        <button data-action="store" data-id="${o.id}" type="button" aria-label="Store order ${o.id} at a location">Store</button>
+                        <button data-action="lost" data-id="${o.id}" type="button" aria-label="Mark order ${o.id} as lost">Lost</button>
+                        <button data-action="fail" data-id="${o.id}" type="button" aria-label="Fail order ${o.id}">Fail</button>
+                    </div>
+                    <button data-action="deliver" data-id="${o.id}" type="button" aria-label="Deliver order ${o.id}" class="btn-full">Deliver</button>`;
             } else {
                 actionHtml = '<span>—</span>';
             }
 
-            html += `<tr><td>${o.id}</td><td>${o.description}</td><td>${clientCell}</td><td>${destCell}</td><td>${statusNorm}</td><td>${actionHtml}</td></tr>`;
+            html += `
+            <div class="card" role="listitem" id="order-card-${o.id}">
+                <div class="card-header">
+                    <label class="card-header-label">
+                        <input type="checkbox" value="${o.id}">
+                        <span class="card-id-large">${o.id}</span>
+                    </label>
+                    <span class="card-status status-${statusNorm.toLowerCase().replace(' ', '-')}">${statusNorm}</span>
+                </div>
+                <div class="card-body">
+                    <h2 class="card-name">${it.name}</h2>
+                    <div class="card-client">⤴️ <strong>Client:</strong> ${clientCell}</div>
+                    <div class="card-destination">⤵️ <strong>Destination:</strong> ${destCell}</div>
+                    ${showCategory ? `<div class="card-category">🏷️ <strong>Category:</strong> ${categoryName}</div>` : ''}
+                    ${showLikes ? `<div class="card-likes">👍 <strong>Max Likes:</strong> ${it.max_likes}</div>` : ''}
+                    ${showWeight ? `<div class="card-weight">⚖️ <strong>Weight:</strong> ${it.weight} kg</div>` : ''}
+                </div>
+                <div class="card-actions">
+                    ${actionHtml}
+                </div>
+            </div>`;
         }
-        html += '</tbody></table>';
+        html += '</div>';
         orderListDiv.innerHTML = html;
+
+        // Focus and scroll if exact match found
+        if (searchVal && searchVal.length >= 3) {
+            const exactCard = orderListDiv.querySelector(`#order-card-${searchVal}`);
+            if (exactCard) {
+                exactCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                exactCard.classList.add('search-highlight');
+                setTimeout(() => exactCard.classList.remove('search-highlight'), 2000);
+            }
+        }
         renderPagination(parsed.total);
 
         // Delegate button clicks
@@ -720,9 +915,20 @@ export function initUI() {
     function renderDeliveries() {
         const delListDiv = document.getElementById('delivery-list');
         if (!delListDiv) return;
-        const deliveries = getDeliveries();
+        let deliveries = getDeliveries();
+        
+        const searchInput = document.getElementById('delivery-search');
+        if (searchInput && searchInput.value) {
+            const s = searchInput.value.toLowerCase();
+            deliveries = deliveries.filter(d => 
+                String(d.order_number).includes(s) || 
+                String(d.status).toLowerCase().includes(s) ||
+                (d.comment && d.comment.toLowerCase().includes(s))
+            );
+        }
+
         if (deliveries.length === 0) {
-            delListDiv.innerHTML = '<p>No deliveries found.</p>';
+            delListDiv.innerHTML = '<p>No deliveries found matching search.</p>';
             return;
         }
 
@@ -731,33 +937,62 @@ export function initUI() {
         })();
         const locById = new Map(locationsList.map(l => [l.id, l]));
 
-        let html = '<table border="1" cellpadding="6" cellspacing="0" role="grid" aria-label="Deliveries list">';
-        html += '<thead><tr><th>ID</th><th>Order #</th><th>Status</th><th>Location</th><th>Started</th><th>Ended</th><th>Comment</th></tr></thead><tbody>';
+        let html = '<div class="cards-container" role="list" aria-label="Deliveries list">';
         for (const d of deliveries) {
             const locName = d.location_id ? (locById.get(d.location_id)?.name || d.location_id) : 'Carried';
             const statusLabel = String(d.status).replace(/_/g, ' ');
-            const statusNorm = statusLabel.charAt(0).toUpperCase() + statusLabel.slice(1).toLowerCase();
+            const statusNorm = statusLabel === 'InProgress' || statusLabel === 'inprogress' ? 'In progress' : (statusLabel.charAt(0).toUpperCase() + statusLabel.slice(1).toLowerCase());
             
-            html += `<tr>
-                <td>${d.id}</td>
-                <td><a href="#" class="btn-link" data-goto-order="${d.order_number}">${d.order_number}</a></td>
-                <td>${statusNorm}</td>
-                <td>${locName}</td>
-                <td><small>${d.started_at || '—'}</small></td>
-                <td><small>${d.ended_at || '—'}</small></td>
-                <td>${d.comment || '—'}</td>
-            </tr>`;
+            html += `
+            <div class="card" role="listitem">
+                <div class="card-header">
+                    <label class="card-header-label">
+                        <input type="checkbox" value="${d.id}">
+                        <span class="card-id-large">Order #${d.order_number}</span>
+                    </label>
+                    <span class="card-status status-${statusNorm.toLowerCase().replace(' ', '-')}">${statusNorm}</span>
+                </div>
+                <div class="card-body">
+                    <p>📍 <strong>Location:</strong> ${locName}</p>
+                    <p>📅 <strong>Started:</strong> <small>${formatDate(d.started_at)}</small></p>
+                    <p>🏁 <strong>Ended:</strong> <small>${formatDate(d.ended_at)}</small></p>
+                    <p>💬 <strong>Comment:</strong> ${d.comment || '—'}</p>
+                </div>
+                <div class="card-actions">
+                    <button class="btn-link" data-goto-order="${d.order_number}" type="button">View Order</button>
+                    <button class="btn-link" data-action="edit-delivery" data-id="${d.id}" type="button">Edit</button>
+                    <button class="btn-link btn-danger" data-action="delete-delivery" data-id="${d.id}" type="button">Delete</button>
+                </div>
+            </div>`;
         }
-        html += '</tbody></table>';
+        html += '</div>';
         delListDiv.innerHTML = html;
 
-        delListDiv.querySelectorAll('a[data-goto-order]').forEach(a => {
+        delListDiv.querySelectorAll('[data-goto-order]').forEach(a => {
             a.addEventListener('click', (ev) => {
                 ev.preventDefault();
-                const num = ev.currentTarget.getAttribute('data-goto-order');
-                filterSearch.value = num;
+                filterSearch.value = ev.currentTarget.getAttribute('data-goto-order');
                 document.getElementById('tab-orders').click();
                 render();
+            });
+        });
+
+        delListDiv.querySelectorAll('[data-action="delete-delivery"]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (confirm('Delete this delivery?')) {
+                    delete_delivery(btn.dataset.id);
+                    renderDeliveries();
+                }
+            });
+        });
+
+        delListDiv.querySelectorAll('[data-action="edit-delivery"]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const comment = prompt('Enter new comment:');
+                if (comment !== null) {
+                    update_delivery(btn.dataset.id, null, comment);
+                    renderDeliveries();
+                }
             });
         });
     }
@@ -768,16 +1003,96 @@ export function initUI() {
         try {
             const json = get_dashboard_summary();
             const s = JSON.parse(json || '{}');
+            
+            const totalOrders = s.total_orders || 540;
+            const completedUnique = s.completed_orders_total || 0;
+            const completionPercent = Math.round((completedUnique / totalOrders) * 100);
+
+            const createProgressBar = (completed, total, label, icon) => {
+                const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+                return `
+                    <div class="stat-row-compact">
+                        <span class="stat-label-mini">${icon} ${label}: ${completed} / ${total}</span>
+                        <div class="progress-bg-mini">
+                            <div class="progress-bar-inner" style="width: ${percent}%;"></div>
+                        </div>
+                    </div>
+                `;
+            };
+
+            const renderLocationCard = (name, data) => {
+                return `
+                    <div class="location-stat-card">
+                        <h3>
+                            ${name}
+                        </h3>
+                        ${createProgressBar(data.completed_out, data.total_out, 'Outgoing', '⤴️')}
+                        ${createProgressBar(data.completed_in, data.total_in, 'Incoming', '⤵️')}
+                    </div>
+                `;
+            };
+
+            const renderRegionStats = (region) => {
+                const locs = Object.entries(s.locations || {})
+                    .filter(([_, data]) => data.region === region)
+                    .sort((a, b) => a[0].localeCompare(b[0]));
+                
+                if (locs.length === 0) return '<p>No data</p>';
+
+                if (region === 'Central') {
+                    // Split Central Region into chunks of 6
+                    const chunks = [];
+                    for (let i = 0; i < locs.length; i += 6) {
+                        chunks.push(locs.slice(i, i + 6));
+                    }
+                    return chunks.map((chunk, idx) => `
+                        <div class="stat-card" ${idx === 0 ? 'style="grid-column-start: 1;"' : ''}>
+                            <h2>Central Region (${idx + 1})</h2>
+                            <div class="region-stats-container">
+                                ${chunk.map(([name, data]) => renderLocationCard(name, data)).join('')}
+                            </div>
+                        </div>
+                    `).join('');
+                }
+
+                return `
+                    <div class="stat-card">
+                        <h2>${region === 'East' ? 'Eastern' : region} Region</h2>
+                        <div class="region-stats-container">
+                            ${locs.map(([name, data]) => renderLocationCard(name, data)).join('')}
+                        </div>
+                    </div>
+                `;
+            };
+
+            const statusNames = {
+                COMPLETE: 'Complete',
+                InProgress: 'In progress',
+                STORED: 'Stashed',
+                LOST: 'Lost',
+                FAILED: 'Failed'
+            };
+
+            const statusHtml = Object.entries(s.status_counts || {}).map(([status, count]) => {
+                return `<li><strong>${statusNames[status] || status}:</strong> ${count}</li>`;
+            }).join('');
+
             el.innerHTML = `
-                <div role="group" aria-label="Completion summary">
-                    <p><strong>East:</strong> ${s.east ?? 0}</p>
-                    <p><strong>Central total:</strong> ${s.central_total ?? 0}</p>
-                    <ul>
-                        <li>A–E: ${s.central_ae ?? 0}</li>
-                        <li>F–M: ${s.central_fm ?? 0}</li>
-                        <li>N–W: ${s.central_nw ?? 0}</li>
-                    </ul>
-                    <p><strong>West:</strong> ${s.west ?? 0}</p>
+                <div class="dashboard-grid">
+                    <div class="stat-card">
+                        <h2>Overall Completion</h2>
+                        <p class="dashboard-completion-status">
+                            Orders Completed: ${completedUnique} / ${totalOrders} (${completionPercent}%)
+                        </p>
+                    </div>
+                    <div class="stat-card">
+                        <h2>Current Deliveries</h2>
+                        <ul class="dashboard-list">
+                            ${statusHtml}
+                        </ul>
+                    </div>
+                    ${renderRegionStats('Central')}
+                    ${renderRegionStats('East')}
                 </div>
             `;
         } catch (e) {
@@ -796,12 +1111,12 @@ export function initUI() {
                 fetch('./data/orders.json').then(r => r.ok ? r.json() : Promise.reject(`Failed to load orders: ${r.status}`)),
             ]);
             console.log('Data fetched. Importing into local storage...');
-            await import_districts(JSON.stringify(districts));
-            await import_locations(JSON.stringify(locations));
-            await import_delivery_categories(JSON.stringify(categories));
-            await import_orders(JSON.stringify(orders));
+            import_districts(JSON.stringify(districts));
+            import_locations(JSON.stringify(locations));
+            import_delivery_categories(JSON.stringify(categories));
+            import_orders(JSON.stringify(orders));
             console.log('Import successful.');
-            await set_schema_version('1');
+            set_schema_version('1');
             setupFilters();
             render();
         } catch (e) {
@@ -1066,8 +1381,62 @@ export function initUI() {
         }
     }
 
+    function renderSettingsResources() {
+        const distList = document.getElementById('districts-list');
+        const locList = document.getElementById('locations-list');
+        const catList = document.getElementById('categories-list');
+
+        if (distList) {
+            try {
+                const districts = JSON.parse(get_districts());
+                distList.innerHTML = districts.map(d => `
+                    <div class="card">
+                        <div class="card-header"><span class="card-id">#${d.id}</span></div>
+                        <div class="card-body">
+                            <h3>${d.name}</h3>
+                            <p>Region: ${d.region}</p>
+                        </div>
+                    </div>
+                `).join('');
+            } catch { distList.innerHTML = '<p>No districts found.</p>'; }
+        }
+        if (locList) {
+            try {
+                const locations = JSON.parse(get_locations());
+                const districts = JSON.parse(get_districts());
+                const distMap = new Map(districts.map(d => [d.id, d.name]));
+                locList.innerHTML = locations.map(l => `
+                    <div class="card">
+                        <div class="card-header"><span class="card-id">#${l.id}</span></div>
+                        <div class="card-body">
+                            <h3>${l.name}</h3>
+                            <p>District: ${distMap.get(l.district_id) || l.district_id}</p>
+                            <p>Physical: ${l.is_physical ? '✅' : '❌'}</p>
+                        </div>
+                    </div>
+                `).join('');
+            } catch { locList.innerHTML = '<p>No locations found.</p>'; }
+        }
+        if (catList) {
+            try {
+                const cats = JSON.parse(get_delivery_categories());
+                catList.innerHTML = cats.map(c => `
+                    <div class="card">
+                        <div class="card-header"><span class="card-id">#${c.id}</span></div>
+                        <div class="card-body">
+                            <h3>${c.name}</h3>
+                        </div>
+                    </div>
+                `).join('');
+            } catch { catList.innerHTML = '<p>No categories found.</p>'; }
+        }
+    }
+
     function setupNav() {
         const tabs = ['dashboard', 'orders', 'deliveries', 'settings'];
+        const navToggle = document.getElementById('nav-toggle');
+        const navMenu = document.getElementById('nav-menu');
+
         function show(panelId) {
             tabs.forEach(tt => {
                 const panel = document.getElementById(`panel-${tt}`);
@@ -1078,6 +1447,13 @@ export function initUI() {
             if (panelId === 'panel-dashboard') renderDashboard();
             if (panelId === 'panel-orders') render();
             if (panelId === 'panel-deliveries') renderDeliveries();
+            if (panelId === 'panel-settings') renderSettingsResources();
+            
+            // Hide menu on mobile after selection
+            if (window.innerWidth <= 768 && navMenu) {
+                navMenu.classList.remove('active');
+                if (navToggle) navToggle.setAttribute('aria-expanded', 'false');
+            }
         }
 
         tabs.forEach(t => {
@@ -1086,6 +1462,13 @@ export function initUI() {
                 btn.addEventListener('click', () => show(`panel-${t}`));
             }
         });
+
+        if (navToggle && navMenu) {
+            navToggle.addEventListener('click', () => {
+                const active = navMenu.classList.toggle('active');
+                navToggle.setAttribute('aria-expanded', active);
+            });
+        }
 
         // Mobile filters toggle
         const toggle = document.getElementById('filter-toggle');
@@ -1141,12 +1524,75 @@ export function initUI() {
             render();
         };
 
-        [filterDistrict, filterClient, filterDestination, filterCategory, filterSearch].forEach(el => {
+        const btnClearSearch = document.getElementById('clear-search');
+        const btnSwap = document.getElementById('swap-locations');
+        const btnReset = document.getElementById('btn-reset');
+
+        if (btnClearSearch) {
+            btnClearSearch.addEventListener('click', () => {
+                filterSearch.value = '';
+                onChange();
+            });
+        }
+
+        if (btnSwap) {
+            btnSwap.addEventListener('click', () => {
+                const temp = filterClient.value;
+                filterClient.value = filterDestination.value;
+                filterDestination.value = temp;
+                onChange();
+            });
+        }
+
+        if (btnReset) {
+            btnReset.addEventListener('click', (ev) => {
+                ev.preventDefault();
+                filterSearch.value = '';
+                filterDistrict.value = '';
+                filterClient.value = '';
+                filterDestination.value = '';
+                filterCategory.value = '';
+                document.querySelectorAll('input[name="status"]').forEach(r => {
+                    r.checked = r.value === '';
+                });
+                document.querySelectorAll('input[name="completion"]').forEach(r => {
+                    r.checked = r.value === '';
+                });
+                onChange();
+            });
+        }
+
+        const validateSearch = () => {
+            const orders = getOrders();
+            if (orders.length > 0) {
+                const nums = orders.map(o => o.number);
+                const min = Math.min(...nums);
+                const max = Math.max(...nums);
+                filterSearch.min = min;
+                filterSearch.max = max;
+                
+                if (filterSearch.value) {
+                    const val = parseInt(filterSearch.value);
+                    if (!isNaN(val) && (val < min || val > max)) {
+                        filterSearch.setCustomValidity(`Order number must be between ${min} and ${max}`);
+                    } else {
+                        filterSearch.setCustomValidity('');
+                    }
+                } else {
+                    filterSearch.setCustomValidity('');
+                }
+            }
+        };
+
+        [filterDistrict, filterClient, filterDestination, filterCategory].forEach(el => {
             el.addEventListener('change', onChange);
         });
-        filterSearch.addEventListener('keyup', onChange);
+        filterSearch.addEventListener('input', () => {
+            validateSearch();
+            onChange();
+        });
 
-        document.querySelectorAll('input[name="status"], input[name="completion"]').forEach(el => {
+        document.querySelectorAll('input[name="status"], input[name="completion"], input[name="field-toggle"]').forEach(el => {
             el.addEventListener('change', onChange);
         });
 
@@ -1165,11 +1611,7 @@ export function initUI() {
                         return;
                     }
                     const loc = locations.find(l => String(l.id) === opt.value);
-                    if (!districtId || (loc && String(loc.district_id) === districtId)) {
-                        opt.hidden = false;
-                    } else {
-                        opt.hidden = true;
-                    }
+                    opt.hidden = !(!districtId || (loc && String(loc.district_id) === districtId));
                 });
             });
             // If current selection is now hidden, reset it

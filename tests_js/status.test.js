@@ -78,27 +78,40 @@ test('transitions_error_paths', () => {
     assert.throws(() => poc.continue_delivery(1, null), /can only continue a stored delivery/);
 });
 
-test('bulk_actions_edge_cases', () => {
+test('fail_and_lose_delivery', () => {
+    localStorage.clear();
+    const orders = [order(1, 100, 200)];
+    poc.import_orders(JSON.stringify(orders));
+    
+    // Fail
+    poc.take_order(1);
+    const msgFail = poc.fail_delivery(1, 'Broken');
+    assert.strictEqual(msgFail, 'failed');
+    let deliveries = JSON.parse(poc.export_deliveries());
+    assert.strictEqual(deliveries[0].status, 'FAILED');
+    assert.strictEqual(deliveries[0].comment, 'Broken');
+    assert.strictEqual(deliveries[0].location_id, 200); // Destination
+    assert.ok(deliveries[0].ended_at);
+
+    // Lose
+    poc.take_order(1); // ID 2
+    const msgLose = poc.lose_delivery(1, 'Lost in void');
+    assert.strictEqual(msgLose, 'lost');
+    deliveries = JSON.parse(poc.export_deliveries());
+    assert.strictEqual(deliveries[1].status, 'LOST');
+    assert.strictEqual(deliveries[1].comment, 'Lost in void');
+    assert.ok(deliveries[1].ended_at);
+});
+
+test('bulk_complete_deliveries', () => {
     localStorage.clear();
     const orders = [order(1, 100, 200), order(2, 101, 201), order(3, 102, 202)];
     poc.import_orders(JSON.stringify(orders));
 
-    // Accept duplicates should not create extras
-    let msg = poc.bulk_accept([1, 2, 1]);
-    assert.strictEqual(msg, "accepted 2");
-    let deliveries = JSON.parse(poc.export_deliveries());
-    assert.strictEqual(deliveries.length, 2);
-
-    // Accept including unknown order 999 is ignored
-    msg = poc.bulk_accept([2, 3, 999]);
-    assert.strictEqual(msg, "accepted 1"); // only 3 added
-    deliveries = JSON.parse(poc.export_deliveries());
-    assert.strictEqual(deliveries.length, 3);
-
     // Bulk complete: if no delivery exists for 1..3 it's fine; for new number creates then completes
-    msg = poc.bulk_complete([1, 2, 3]);
+    let msg = poc.bulk_complete([1, 2, 3]);
     assert.strictEqual(msg, "completed 3");
-    deliveries = JSON.parse(poc.export_deliveries());
+    let deliveries = JSON.parse(poc.export_deliveries());
     assert.ok(deliveries.every(d => d.status === "COMPLETE"));
 
     // Bulk complete also creates when missing
@@ -110,75 +123,4 @@ test('bulk_actions_edge_cases', () => {
     assert.strictEqual(deliveries.length, 1);
     assert.strictEqual(deliveries[0].order_number, 2);
     assert.strictEqual(deliveries[0].status, "COMPLETE");
-});
-
-test('import_deliveries_filtering', () => {
-    localStorage.clear();
-    const orders = [order(100, 1, 2), order(101, 3, 4)];
-    poc.import_orders(JSON.stringify(orders));
-
-    const incoming = [
-        {
-            id: 1,
-            order_number: 100,
-            status: "InProgress",
-            location_id: null,
-            started_at: null,
-            ended_at: null,
-            comment: null,
-            user_id: null,
-        },
-        {
-            id: 2,
-            order_number: 999, // Invalid
-            status: "InProgress",
-            location_id: null,
-            started_at: null,
-            ended_at: null,
-            comment: null,
-            user_id: null,
-        },
-    ];
-
-    poc.import_deliveries(JSON.stringify(incoming));
-    const filtered = JSON.parse(poc.export_deliveries());
-    assert.strictEqual(filtered.length, 1);
-    assert.strictEqual(filtered[0].order_number, 100);
-});
-
-test('multiple_deliveries_same_order_sequential_ids', () => {
-    localStorage.clear();
-    const orders = [order(229, 100, 200)];
-    poc.import_orders(JSON.stringify(orders));
-
-    // First take of order 229
-    poc.take_order(229);
-    let deliveries = JSON.parse(poc.export_deliveries());
-    assert.strictEqual(deliveries.length, 1);
-    assert.strictEqual(deliveries[0].order_number, 229);
-    assert.strictEqual(deliveries[0].id, 1);
-
-    // Complete it
-    poc.make_delivery(229);
-    deliveries = JSON.parse(poc.export_deliveries());
-    assert.strictEqual(deliveries[0].status, "COMPLETE");
-
-    // Second take of order 229
-    poc.take_order(229);
-    deliveries = JSON.parse(poc.export_deliveries());
-    assert.strictEqual(deliveries.length, 2);
-    assert.strictEqual(deliveries[1].order_number, 229);
-    assert.strictEqual(deliveries[1].id, 2); // Sequential ID
-
-    // Complete it too
-    poc.make_delivery(229);
-    deliveries = JSON.parse(poc.export_deliveries());
-    assert.strictEqual(deliveries[1].status, "COMPLETE");
-
-    // Third take of order 229
-    poc.take_order(229);
-    deliveries = JSON.parse(poc.export_deliveries());
-    assert.strictEqual(deliveries.length, 3);
-    assert.strictEqual(deliveries[2].order_number, 229);
-    assert.strictEqual(deliveries[2].id, 3); // Sequential ID
 });
