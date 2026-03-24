@@ -2,18 +2,25 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Death Stranding PoC</title>
     <link rel="stylesheet" href="css/styles.css">
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
-
-<nav role="tablist" aria-label="Main sections">
-    <button id="tab-dashboard" role="tab" aria-controls="panel-dashboard" aria-selected="false">Dashboard</button>
-    <button id="tab-orders" role="tab" aria-controls="panel-orders" aria-selected="true">Orders</button>
-    <button id="tab-deliveries" role="tab" aria-controls="panel-deliveries" aria-selected="false">Deliveries</button>
-    <button id="tab-settings" role="tab" aria-controls="panel-settings" aria-selected="false">Settings</button>
+<nav>
+    <button id="nav-toggle" class="mobile-only" aria-label="Toggle navigation" aria-expanded="false">
+        <span class="hamburger"></span> Menu
+    </button>
+    <div id="nav-menu" role="tablist" aria-label="Main sections">
+        <button id="tab-dashboard" role="tab" aria-controls="panel-dashboard" aria-selected="false">Dashboard</button>
+        <button id="tab-orders" role="tab" aria-controls="panel-orders" aria-selected="true">Orders</button>
+        <button id="tab-deliveries" role="tab" aria-controls="panel-deliveries" aria-selected="false">Deliveries</button>
+        <button id="tab-settings" role="tab" aria-controls="panel-settings" aria-selected="false">Settings</button>
+    </div>
 </nav>
+
+<div id="app-version">v0.1.1</div>
 
 <section id="panel-dashboard" hidden>
     <h1>Dashboard</h1>
@@ -25,13 +32,21 @@
     <fieldset id="filters-container">
         <legend>Filters</legend>
         <div class="filter-row-top">
-            <label>Search
-                <input id="filter-search" placeholder="Order # or name">
-            </label>
+            <div class="search-container">
+                <label for="filter-search">Search Order #</label>
+                <div class="search-input-wrapper">
+                    <input id="filter-search" type="number" placeholder="Order #">
+                    <button id="clear-search" type="button" aria-label="Clear search">X</button>
+                </div>
+            </div>
+            <div class="bulk-actions">
+                <button id="btn-bulk-accept" type="button" class="btn-success">Bulk Accept</button>
+                <button id="btn-bulk-complete" type="button" class="btn-accent">Bulk Complete</button>
+            </div>
+            <button id="filter-toggle" type="button" aria-expanded="false" aria-controls="filter-content">
+                <span class="hamburger"></span> Filters
+            </button>
         </div>
-        <button id="filter-toggle" class="mobile-only" type="button" aria-expanded="false" aria-controls="filter-content">
-            <span class="hamburger"></span> Filters
-        </button>
         <div id="filter-content">
             <div class="filter-columns">
                 <div class="filter-column">
@@ -40,21 +55,25 @@
                             <option value="">All</option>
                         </select>
                     </label>
-                    <label>Client
-                        <select id="filter-client">
-                            <option value="">All</option>
-                        </select>
-                    </label>
-                    <label>Destination
-                        <select id="filter-destination">
-                            <option value="">All</option>
-                        </select>
-                    </label>
+                    <div class="filter-row-inline">
+                        <label>Client
+                            <select id="filter-client">
+                                <option value="">All</option>
+                            </select>
+                        </label>
+                        <button id="swap-locations" type="button" title="Swap client and destination" class="btn-icon">⇄</button>
+                        <label>Destination
+                            <select id="filter-destination">
+                                <option value="">All</option>
+                            </select>
+                        </label>
+                    </div>
                     <label>Category
                         <select id="filter-category">
                             <option value="">All</option>
                         </select>
                     </label>
+                    <a href="#" id="btn-reset">Reset all filters</a>
                 </div>
                 <div class="filter-column">
                     <fieldset>
@@ -76,6 +95,12 @@
                         <label><input type="radio" name="completion" value="true"> Completed</label>
                         <label><input type="radio" name="completion" value="false"> Not completed</label>
                     </fieldset>
+                    <fieldset>
+                        <legend>Card Fields</legend>
+                        <label><input type="checkbox" name="field-toggle" value="category" checked> Category</label>
+                        <label><input type="checkbox" name="field-toggle" value="likes" checked> Max Likes</label>
+                        <label><input type="checkbox" name="field-toggle" value="weight" checked> Weight</label>
+                    </fieldset>
                 </div>
             </div>
         </div>
@@ -84,8 +109,7 @@
         <!-- Orders will be dynamically added here -->
     </div>
     <div id="orders-pagination"></div>
-    <div id="seed-banner" role="alert"
-         style="margin: 1rem 0; padding: .75rem; border: 1px solid #ccc; background: #fffbdd;">
+    <div id="seed-banner" role="alert">
         No data found. Click "Load demo data" to import sample Orders, Locations, Districts and Categories for this PoC.
         <button id="btn-seed" type="button" aria-label="Load demo data into local storage">Load demo data</button>
     </div>
@@ -93,25 +117,62 @@
 
     <section id="panel-deliveries" hidden>
         <h1>Deliveries</h1>
-        <div id="delivery-list" role="table" aria-label="Deliveries table">
+        <div class="filter-row-top">
+            <div class="search-container">
+                <label for="delivery-search">Search Deliveries</label>
+                <div class="search-input-wrapper">
+                    <input id="delivery-search" type="text" placeholder="Order #, status or comment">
+                    <button id="clear-delivery-search" type="button" aria-label="Clear search">X</button>
+                </div>
+            </div>
+            <div class="bulk-actions">
+                <button id="btn-bulk-delete-deliveries" type="button" class="btn-danger">Bulk Delete</button>
+            </div>
+        </div>
+        <div id="delivery-list" role="list" aria-label="Deliveries list">
             <!-- Deliveries will be dynamically added here -->
         </div>
         <div id="delivery-status" role="status" aria-live="polite"></div>
     </section>
 
     <section id="panel-settings" hidden>
-        <h1>Settings & Integration</h1>
-        <fieldset>
-            <legend>Google Integration</legend>
-            <p>Export your delivery data to <strong>your personal</strong> Google Sheets or save as JSON to <strong>your personal</strong> Google Drive.</p>
-            <p><small>The application only accesses files it creates and will not see your other data.</small></p>
-            <button id="btn-google-login">Login with Google</button>
-            <button id="btn-export-sheets" disabled title="Export to your personal Google Sheets">Export to My Google Sheets</button>
-            <button id="btn-import-sheets" disabled title="Import from your personal Google Sheets">Import from My Google Sheets</button>
-            <button id="btn-export-drive" disabled title="Save to your personal Google Drive">Save to My Google Drive</button>
-            <button id="btn-import-drive" disabled title="Import from your personal Google Drive">Import from My Google Drive</button>
-            <div id="google-status" style="margin-top: 1rem; font-style: italic;"></div>
-        </fieldset>
+        <h1>Settings & Resources</h1>
+        
+        <div class="settings-nav">
+            <button class="settings-tab-btn" data-panel="settings-google">Integration</button>
+            <button class="settings-tab-btn" data-panel="settings-districts">Districts</button>
+            <button class="settings-tab-btn" data-panel="settings-locations">Locations</button>
+            <button class="settings-tab-btn" data-panel="settings-categories">Categories</button>
+        </div>
+
+        <div id="settings-google" class="settings-panel">
+            <fieldset>
+                <legend>Google Integration</legend>
+                <p>Export your delivery data to <strong>your personal</strong> Google Sheets or save as JSON to <strong>your personal</strong> Google Drive.</p>
+                <p><small>The application only accesses files it creates and will not see your other data.</small></p>
+                <button id="btn-google-login">Login with Google</button>
+                <button id="btn-export-sheets" disabled title="Export to your personal Google Sheets">Export to My Google Sheets</button>
+                <button id="btn-import-sheets" disabled title="Import from your personal Google Sheets">Import from My Google Sheets</button>
+                <button id="btn-export-drive" disabled title="Save to your personal Google Drive">Save to My Google Drive</button>
+                <button id="btn-import-drive" disabled title="Import from your personal Google Drive">Import from My Google Drive</button>
+                <div id="google-status"></div>
+            </fieldset>
+        </div>
+
+        <div id="settings-districts" class="settings-panel" hidden>
+            <h2>Districts</h2>
+            <div id="districts-list" class="cards-container"></div>
+        </div>
+
+        <div id="settings-locations" class="settings-panel" hidden>
+            <h2>Locations</h2>
+            <div id="locations-list" class="cards-container"></div>
+        </div>
+
+        <div id="settings-categories" class="settings-panel" hidden>
+            <h2>Delivery Categories</h2>
+            <div id="categories-list" class="cards-container"></div>
+        </div>
     </section>
 
 <script type="module">

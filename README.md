@@ -68,7 +68,7 @@ The core business logic is verified using a JavaScript test suite.
     ```
 2.  **Run specific tests**:
     ```bash
-    node --test tests_js/filtering.test.js
+    node --test tests_js/order.test.js
     ```
 
 ## Deployment

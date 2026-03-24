@@ -1,6 +1,6 @@
 {
   "name": "death-stranding-poc",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Death Stranding PoC",
   "type": "module",
   "scripts": {
