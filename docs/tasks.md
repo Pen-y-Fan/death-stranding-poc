@@ -151,6 +151,7 @@ JSON files for Orders, Locations, etc.).
     3. [x] Implement a static version number display in the top-right corner of the app.
     4. [x] Create a Pull Request template with a "Version number bumped?" checklist.
     5. [x] Fix schema validation in `.github/workflows/deploy.yml` (move `environment` to job level).
+    6. [x] Fix GitHub Pages 404 error by splitting `build` and `deploy` jobs in `.github/workflows/deploy.yml` and correctly using `actions/upload-pages-artifact` and `actions/deploy-pages`.
 
 23. [x] Administrative and Advanced Features (Alignment with Manuals)
     1. [x] Implement "Settings" navigation for managing Locations, Districts, and Delivery Categories.
@@ -205,4 +206,4 @@ JSON files for Orders, Locations, etc.).
         - [x] Clean up Google API/OAuth2 related unresolved references if not used.
         - [x] Fix hover state for settings navigation buttons (prevent text color matching background color).
 
-Last generated: 2026-03-24 23:32
+Last generated: 2026-03-25 13:52
