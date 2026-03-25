@@ -17,16 +17,12 @@ permissions:
   id-token: write
 
 jobs:
-  build_and_deploy:
+  # Build job
+  build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -39,7 +35,7 @@ jobs:
       - name: Run JS Tests
         run: npm test
 
-      - name: Prepare GitHub Pages deployment
+      - name: Prepare static files
         run: |
           mkdir -p docs_deploy
           cp -R js docs_deploy/
@@ -47,11 +43,19 @@ jobs:
           cp -R data docs_deploy/
           cp index.html docs_deploy/
 
-      - name: Upload artifact
+      - name: Upload static files as artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: docs_deploy
+          path: docs_deploy/
 
+  # Deployment job
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
