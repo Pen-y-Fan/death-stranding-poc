@@ -83,10 +83,63 @@ fieldset {
     background-color: rgba(31, 40, 51, 0.5);
 }
 
-legend {
-    padding: 0 0.5rem;
-    color: var(--accent-color);
-    font-weight: bold;
+/* Progress and Feedback Styles */
+.progress-text {
+    margin: 0.5rem 0 1.5rem 0;
+    color: var(--text-color);
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
+/* Button Loading States */
+.btn-loading {
+    position: relative;
+    color: transparent !important;
+    pointer-events: none;
+}
+
+.btn-loading::after {
+    content: "";
+    position: absolute;
+    width: 1rem;
+    height: 1rem;
+    top: 50%;
+    left: 50%;
+    margin-top: -0.5rem;
+    margin-left: -0.5rem;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Card Animations */
+.card-fade-out {
+    opacity: 0;
+    transform: translateX(20px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.confirmation-toast {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    background-color: var(--success-color);
+    color: #fff;
+    padding: 1rem 2rem;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    z-index: 2000;
+    animation: slideInUp 0.3s ease-out;
+}
+
+@keyframes slideInUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
 }
 
 label {
@@ -613,6 +666,10 @@ button[data-action="continue"] { background-color: var(--success-color); color: 
     grid-template-columns: repeat(3, 1fr);
     gap: 0.5rem;
     width: 100%;
+}
+
+.mt-10 {
+    margin-top: 10px;
 }
 
 .btn-full {

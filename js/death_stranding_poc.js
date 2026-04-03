@@ -1,4 +1,5 @@
-// Hand-written JS implementation of the Rust logic for the Death Stranding PoC.
+/* global google */
+// Hand-written JS implementation of the Rust logic for the Death Stranding PoC. v0.1.3
 // This replaces the WASM module to avoid recurring RangeError: WebAssembly.Table.grow issues in browsers.
 
 // --- Storage Keys (Namespaced) ---
@@ -532,24 +533,24 @@ export function get_dashboard_summary() {
 
 export function initialize() {
     console.log("PoC Logic initialized");
+    initUI();
 }
 
 // Mock the default export (init function)
 export default async function init() {
     console.log("PoC Logic loaded via JS");
+    initialize();
     return {};
 }
 
-export function initSync() {
-    return {};
-}
-
-// --- UI Logic (moved from index.html) ---
-
-export function initUI() {
+export async function initUI() {
     console.log('Modules imported, calling initUI()...');
 
+    let currentPage = 1;
+    const perPage = 30;
+
     const orderListDiv = document.getElementById('order-list');
+    // const delListDiv = document.getElementById('delivery-list');
     const statusDiv = document.getElementById('delivery-status');
     const filterDistrict = document.getElementById('filter-district');
     const filterClient = document.getElementById('filter-client');
@@ -562,122 +563,32 @@ export function initUI() {
     const btnBulkAccept = document.getElementById('btn-bulk-accept');
     const btnBulkComplete = document.getElementById('btn-bulk-complete');
 
-    if (btnBulkAccept) {
-        btnBulkAccept.addEventListener('click', () => {
-            const selected = Array.from(document.querySelectorAll('#order-list input[type="checkbox"]:checked'))
-                .map(cb => parseInt(cb.value, 10));
-            if (selected.length === 0) return alert('No orders selected');
-            bulk_accept(selected);
-            render();
-        });
-    }
-    if (btnBulkComplete) {
-        btnBulkComplete.addEventListener('click', () => {
-            const selected = Array.from(document.querySelectorAll('#order-list input[type="checkbox"]:checked'))
-                .map(cb => parseInt(cb.value, 10));
-            if (selected.length === 0) return alert('No orders selected');
-            bulk_complete(selected);
-            render();
-        });
-    }
-
-    document.querySelectorAll('.settings-tab-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.settings-tab-btn').forEach(b => b.classList.remove('active-tab'));
-            btn.classList.add('active-tab');
-            document.querySelectorAll('.settings-panel').forEach(p => p.hidden = true);
-            const target = document.getElementById(btn.dataset.panel);
-            if (target) target.hidden = false;
-            renderSettingsResources();
-        });
-    });
-
-    if (deliverySearch) {
-        deliverySearch.addEventListener('input', renderDeliveries);
-    }
-    if (btnClearDeliverySearch) {
-        btnClearDeliverySearch.addEventListener('click', () => {
-            deliverySearch.value = '';
-            renderDeliveries();
-        });
-    }
-    if (btnBulkDeleteDeliveries) {
-        btnBulkDeleteDeliveries.addEventListener('click', () => {
-            const selected = Array.from(document.querySelectorAll('#delivery-list input[type="checkbox"]:checked'))
-                .map(cb => cb.value);
-            if (selected.length === 0) return alert('No deliveries selected');
-            if (confirm(`Delete ${selected.length} selected deliveries?`)) {
-                bulk_delete_deliveries(selected);
-                renderDeliveries();
-            }
-        });
-    }
-
-    let currentPage = 1;
-    const perPage = 30;
-
-    function formatDate(dateStr) {
-        if (!dateStr) return '—';
-        const d = new Date(dateStr);
-        if (isNaN(d.getTime())) return dateStr;
-        const day = String(d.getDate()).padStart(2, '0');
-        const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-        const month = months[d.getMonth()];
-        const year = d.getFullYear();
-        const h = String(d.getHours()).padStart(2, '0');
-        const m = String(d.getMinutes()).padStart(2, '0');
-        const s = String(d.getSeconds()).padStart(2, '0');
-        return `${day} ${month} ${year} ${h}:${m}:${s}`;
-    }
-
-    // Keyboard shortcuts
-    document.addEventListener('keydown', (ev) => {
-        if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
-        
-        const key = ev.key.toLowerCase();
-        if (key === 's') {
-            const takeBtn = document.querySelector('.card button[data-action="take"]');
-            if (takeBtn) { takeBtn.click(); return; }
-            const continueBtn = document.querySelector('.card button[data-action="continue"]');
-            if (continueBtn) { continueBtn.click(); return; }
-            const storeBtn = document.querySelector('.card button[data-action="store"]');
-            if (storeBtn) { storeBtn.click(); return; }
+    function updateBulkButtons() {
+        const selectedCount = document.querySelectorAll('#order-list input[type="checkbox"]:checked').length;
+        if (btnBulkAccept) {
+            btnBulkAccept.textContent = selectedCount > 0 ? `Bulk Accept (${selectedCount})` : 'Bulk Accept';
+            btnBulkAccept.disabled = selectedCount === 0;
         }
-        if (key === 'd') {
-            const btn = document.querySelector('.card button[data-action="deliver"]');
-            if (btn) btn.click();
-        }
-        if (key === 'l') {
-            const btn = document.querySelector('.card button[data-action="lost"]');
-            if (btn) btn.click();
-        }
-        if (key === 'f') {
-            const btn = document.querySelector('.card button[data-action="fail"]');
-            if (btn) btn.click();
-        }
-    });
-
-    function getOrders() {
-        try {
-            const raw = localStorage.getItem('ds:orders');
-            return raw ? JSON.parse(raw) : [];
-        } catch (e) {
-            console.error('Failed to read orders from localStorage', e);
-            return [];
-        }
-    }
-
-    function getDeliveries() {
-        try {
-            const raw = localStorage.getItem('ds:deliveries');
-            return raw ? JSON.parse(raw) : [];
-        } catch (e) {
-            console.error('Failed to read deliveries from localStorage', e);
-            return [];
+        if (btnBulkComplete) {
+            btnBulkComplete.textContent = selectedCount > 0 ? `Bulk Complete (${selectedCount})` : 'Bulk Complete';
+            btnBulkComplete.disabled = selectedCount === 0;
         }
     }
 
     function render() {
+        const progressEl = document.getElementById('orders-progress');
+        if (progressEl) {
+            try {
+                const summary = JSON.parse(get_dashboard_summary());
+                const completed = summary.completed_orders_total || 0;
+                const total = summary.total_orders || 0;
+                const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+                progressEl.textContent = `Orders Completed: ${completed} / ${total} (${percent}%)`;
+            } catch (e) {
+                console.error('Failed to update orders progress', e);
+            }
+        }
+
         const banner = document.getElementById('seed-banner');
         const hasOrders = getOrders().length > 0;
         if (banner) banner.hidden = hasOrders;
@@ -762,23 +673,24 @@ export function initUI() {
 
             let actionHtml = '';
             if (!active) {
-                actionHtml = `<button data-action="take" data-id="${o.id}" type="button" aria-label="Take order ${o.id}" class="btn-full">Start</button>`;
+                actionHtml = `<button data-action="take" data-id="${o.id}" type="button" aria-label="Start order ${o.id}" class="btn-full">Start</button>`;
             } else if (statusNorm === 'Stored') {
                 actionHtml = `
                     <div class="btn-grid-3">
                         <button data-action="continue" data-id="${o.id}" type="button" aria-label="Continue stored order ${o.id}">Continue</button>
                         <button data-action="lost" data-id="${o.id}" type="button" aria-label="Mark order ${o.id} as lost">Lost</button>
-                        <button data-action="fail" data-id="${o.id}" type="button" aria-label="Fail order ${o.id}">Fail</button>
+                        <button data-action="fail" data-id="${o.id}" type="button" aria-label="Mark order ${o.id} as failed">Fail</button>
                     </div>
-                    <button data-action="deliver" data-id="${o.id}" type="button" aria-label="Deliver order ${o.id}" class="btn-full">Deliver</button>`;
+                `;
             } else if (statusNorm === 'In progress') {
                 actionHtml = `
                     <div class="btn-grid-3">
-                        <button data-action="store" data-id="${o.id}" type="button" aria-label="Store order ${o.id} at a location">Store</button>
+                        <button data-action="store" data-id="${o.id}" type="button" aria-label="Store order ${o.id}">Store</button>
                         <button data-action="lost" data-id="${o.id}" type="button" aria-label="Mark order ${o.id} as lost">Lost</button>
-                        <button data-action="fail" data-id="${o.id}" type="button" aria-label="Fail order ${o.id}">Fail</button>
+                        <button data-action="fail" data-id="${o.id}" type="button" aria-label="Mark order ${o.id} as failed">Fail</button>
                     </div>
-                    <button data-action="deliver" data-id="${o.id}" type="button" aria-label="Deliver order ${o.id}" class="btn-full">Deliver</button>`;
+                    <button data-action="deliver" data-id="${o.id}" type="button" aria-label="Deliver order ${o.id}" class="btn-full mt-10">Deliver</button>
+                `;
             } else {
                 actionHtml = '<span>—</span>';
             }
@@ -818,6 +730,7 @@ export function initUI() {
             }
         }
         renderPagination(parsed.total);
+        updateBulkButtons();
 
         // Delegate button clicks
         orderListDiv.querySelectorAll('button[data-action]')?.forEach(btn => {
@@ -825,27 +738,36 @@ export function initUI() {
                 const b = ev.currentTarget;
                 const id = parseInt(b.getAttribute('data-id'), 10);
                 const action = b.getAttribute('data-action');
-                try {
-                    if (action === 'take') {
-                        await take_order(id);
-                    } else if (action === 'deliver') {
-                        await make_delivery(id);
-                    } else if (action === 'store') {
-                        const loc = prompt('Enter location id to store at:');
-                        if (loc) await store_delivery(id, parseInt(loc, 10), null);
-                    } else if (action === 'continue') {
-                        await continue_delivery(id, null);
-                    } else if (action === 'fail') {
-                        const comment = prompt('Reason (optional):') || null;
-                        await fail_delivery(id, comment);
-                    } else if (action === 'lost') {
-                        const comment = prompt('Note (optional):') || null;
-                        await lose_delivery(id, comment);
-                    }
-                    // Re-render after state change
-                    render();
-                } catch (e) {
-                    console.error('Action failed', action, id, e);
+                
+                let actionFn;
+                let message;
+
+                if (action === 'take') {
+                    actionFn = () => take_order(id);
+                    message = `Order ${id} started`;
+                } else if (action === 'deliver') {
+                    actionFn = () => make_delivery(id);
+                    message = `Order ${id} delivered`;
+                } else if (action === 'store') {
+                    const loc = prompt('Enter location id to store at:');
+                    if (!loc) return;
+                    actionFn = () => store_delivery(id, parseInt(loc, 10), null);
+                    message = `Order ${id} stored`;
+                } else if (action === 'continue') {
+                    actionFn = () => continue_delivery(id, null);
+                    message = `Order ${id} continued`;
+                } else if (action === 'fail') {
+                    const comment = prompt('Reason (optional):') || null;
+                    actionFn = () => fail_delivery(id, comment);
+                    message = `Order ${id} failed`;
+                } else if (action === 'lost') {
+                    const comment = prompt('Note (optional):') || null;
+                    actionFn = () => lose_delivery(id, comment);
+                    message = `Order ${id} lost`;
+                }
+
+                if (actionFn) {
+                    await handleAction(b, actionFn, message);
                 }
             });
         });
@@ -872,7 +794,6 @@ export function initUI() {
                 // Ensure Orders tab is shown and update switch button
                 const ordersTab = document.getElementById('tab-orders');
                 if (ordersTab) ordersTab.click();
-                updateSwitchButton();
                 render();
             });
         });
@@ -881,35 +802,6 @@ export function initUI() {
         const delivered = deliveries.filter(d => String(d.status).toUpperCase() === 'COMPLETE').length;
         const pending = deliveries.filter(d => String(d.status).toUpperCase() !== 'COMPLETE').length;
         statusDiv.textContent = `Pending: ${pending}, Delivered: ${delivered}`;
-    }
-
-    function renderPagination(total) {
-        const pagDiv = document.getElementById('orders-pagination');
-        if (!pagDiv) return;
-        if (total <= perPage && currentPage === 1) {
-            pagDiv.innerHTML = '';
-            return;
-        }
-        const totalPages = Math.ceil(total / perPage);
-        pagDiv.innerHTML = `
-            <div class="pagination">
-                <button id="prev-page" ${currentPage === 1 ? 'disabled' : ''}>Previous</button>
-                <span>Page ${currentPage} of ${totalPages || 1}</span>
-                <button id="next-page" ${currentPage >= totalPages ? 'disabled' : ''}>Next</button>
-            </div>
-        `;
-        document.getElementById('prev-page')?.addEventListener('click', () => {
-            if (currentPage > 1) {
-                currentPage--;
-                render();
-            }
-        });
-        document.getElementById('next-page')?.addEventListener('click', () => {
-            if (currentPage < totalPages) {
-                currentPage++;
-                render();
-            }
-        });
     }
 
     function renderDeliveries() {
@@ -979,21 +871,219 @@ export function initUI() {
 
         delListDiv.querySelectorAll('[data-action="delete-delivery"]').forEach(btn => {
             btn.addEventListener('click', () => {
+                const id = btn.getAttribute('data-id');
                 if (confirm('Delete this delivery?')) {
-                    delete_delivery(btn.dataset.id);
+                    delete_delivery(id);
+                    renderDeliveries();
+                    render();
+                }
+            });
+        });
+        
+        delListDiv.querySelectorAll('[data-action="edit-delivery"]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const id = btn.getAttribute('data-id');
+                const comment = prompt('New comment:');
+                if (comment !== null) {
+                    update_delivery(id, null, comment);
                     renderDeliveries();
                 }
             });
         });
+    }
 
-        delListDiv.querySelectorAll('[data-action="edit-delivery"]').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const comment = prompt('Enter new comment:');
-                if (comment !== null) {
-                    update_delivery(btn.dataset.id, null, comment);
-                    renderDeliveries();
-                }
-            });
+    async function handleAction(btn, actionFn, message = null) {
+        if (btn.classList.contains('btn-loading')) return;
+        btn.classList.add('btn-loading');
+        
+        try {
+            // Artificial delay to show loading state
+            await new Promise(resolve => setTimeout(resolve, 600));
+            await actionFn();
+            if (message) showToast(message);
+            
+            // If the button was part of a card that might disappear due to status change
+            const currentStatusFilter = document.querySelector('input[name="status"]:checked')?.value;
+            const card = btn.closest('.card');
+            if (card && (currentStatusFilter === 'none' || currentStatusFilter === 'in_progress')) {
+                card.classList.add('card-fade-out');
+                await new Promise(resolve => setTimeout(resolve, 400));
+            }
+        } catch (e) {
+            console.error('Action failed', e);
+            alert(`Error: ${e.message}`);
+        } finally {
+            btn.classList.remove('btn-loading');
+            if (typeof render === 'function') {
+                render();
+            } else {
+                console.warn('render() is not defined, skipping UI update');
+            }
+            if (typeof renderDeliveries === 'function') {
+                renderDeliveries();
+            }
+        }
+    }
+
+    function showToast(message) {
+        const toast = document.createElement('div');
+        toast.className = 'confirmation-toast';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.5s ease';
+                setTimeout(() => toast.remove(), 500);
+            }
+        }, 3000);
+    }
+
+    // Re-render when checkboxes are toggled
+    orderListDiv.addEventListener('change', (ev) => {
+        if (ev.target.type === 'checkbox') {
+            updateBulkButtons();
+        }
+    });
+
+    if (btnBulkAccept) {
+        btnBulkAccept.addEventListener('click', () => {
+            const selected = Array.from(document.querySelectorAll('#order-list input[type="checkbox"]:checked'))
+                .map(cb => parseInt(cb.value, 10));
+            if (selected.length === 0) return alert('No orders selected');
+            
+            handleAction(btnBulkAccept, () => bulk_accept(selected), `+${selected.length} orders accepted`);
+        });
+    }
+    if (btnBulkComplete) {
+        btnBulkComplete.addEventListener('click', () => {
+            const selected = Array.from(document.querySelectorAll('#order-list input[type="checkbox"]:checked'))
+                .map(cb => parseInt(cb.value, 10));
+            if (selected.length === 0) return alert('No orders selected');
+            
+            handleAction(btnBulkComplete, () => bulk_complete(selected), `+${selected.length} orders completed`);
+        });
+    }
+
+    document.querySelectorAll('.settings-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.settings-tab-btn').forEach(b => b.classList.remove('active-tab'));
+            btn.classList.add('active-tab');
+            document.querySelectorAll('.settings-panel').forEach(p => p.hidden = true);
+            const target = document.getElementById(btn.dataset.panel);
+            if (target) target.hidden = false;
+            renderSettingsResources();
+        });
+    });
+
+    if (deliverySearch) {
+        deliverySearch.addEventListener('input', renderDeliveries);
+    }
+    if (btnClearDeliverySearch) {
+        btnClearDeliverySearch.addEventListener('click', () => {
+            deliverySearch.value = '';
+            renderDeliveries();
+        });
+    }
+    if (btnBulkDeleteDeliveries) {
+        btnBulkDeleteDeliveries.addEventListener('click', () => {
+            const selected = Array.from(document.querySelectorAll('#delivery-list input[type="checkbox"]:checked'))
+                .map(cb => cb.value);
+            if (selected.length === 0) return alert('No deliveries selected');
+            if (confirm(`Delete ${selected.length} selected deliveries?`)) {
+                bulk_delete_deliveries(selected);
+                renderDeliveries();
+            }
+        });
+    }
+
+    function formatDate(dateStr) {
+        if (!dateStr) return '—';
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return dateStr;
+        const day = String(d.getDate()).padStart(2, '0');
+        const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        const month = months[d.getMonth()];
+        const year = d.getFullYear();
+        const h = String(d.getHours()).padStart(2, '0');
+        const m = String(d.getMinutes()).padStart(2, '0');
+        const s = String(d.getSeconds()).padStart(2, '0');
+        return `${day} ${month} ${year} ${h}:${m}:${s}`;
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (ev) => {
+        if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
+        
+        const key = ev.key.toLowerCase();
+        if (key === 's') {
+            const takeBtn = document.querySelector('.card button[data-action="take"]');
+            if (takeBtn) { takeBtn.click(); return; }
+            const continueBtn = document.querySelector('.card button[data-action="continue"]');
+            if (continueBtn) { continueBtn.click(); return; }
+            const storeBtn = document.querySelector('.card button[data-action="store"]');
+            if (storeBtn) { storeBtn.click(); return; }
+        }
+        if (key === 'd') {
+            const btn = document.querySelector('.card button[data-action="deliver"]');
+            if (btn) btn.click();
+        }
+        if (key === 'l') {
+            const btn = document.querySelector('.card button[data-action="lost"]');
+            if (btn) btn.click();
+        }
+        if (key === 'f') {
+            const btn = document.querySelector('.card button[data-action="fail"]');
+            if (btn) btn.click();
+        }
+    });
+
+    function getOrders() {
+        try {
+            const raw = localStorage.getItem('ds:orders');
+            return raw ? JSON.parse(raw) : [];
+        } catch (e) {
+            console.error('Failed to read orders from localStorage', e);
+            return [];
+        }
+    }
+
+    function getDeliveries() {
+        try {
+            const raw = localStorage.getItem('ds:deliveries');
+            return raw ? JSON.parse(raw) : [];
+        } catch (e) {
+            console.error('Failed to read deliveries from localStorage', e);
+            return [];
+        }
+    }
+
+    function renderPagination(total) {
+        const pagDiv = document.getElementById('orders-pagination');
+        if (!pagDiv) return;
+        if (total <= perPage && currentPage === 1) {
+            pagDiv.innerHTML = '';
+            return;
+        }
+        const totalPages = Math.ceil(total / perPage);
+        pagDiv.innerHTML = `
+            <div class="pagination">
+                <button id="prev-page" ${currentPage === 1 ? 'disabled' : ''}>Previous</button>
+                <span>Page ${currentPage} of ${totalPages || 1}</span>
+                <button id="next-page" ${currentPage >= totalPages ? 'disabled' : ''}>Next</button>
+            </div>
+        `;
+        document.getElementById('prev-page')?.addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                render();
+            }
+        });
+        document.getElementById('next-page')?.addEventListener('click', () => {
+            if (currentPage < totalPages) {
+                currentPage++;
+                render();
+            }
         });
     }
 
@@ -1143,6 +1233,7 @@ export function initUI() {
         if (!btnLogin) return;
 
         btnLogin.addEventListener('click', () => {
+            // noinspection JSUnusedGlobalSymbols
             const client = google.accounts.oauth2.initTokenClient({
                 client_id: GOOGLE_CLIENT_ID,
                 scope: SCOPES,
@@ -1257,6 +1348,7 @@ export function initUI() {
             });
 
             if (!valuesResponse.ok) {
+                // noinspection ExceptionCaughtLocallyJS
                 throw new Error(`Failed to fetch values: ${valuesResponse.statusText}`);
             }
 
@@ -1281,7 +1373,7 @@ export function initUI() {
 
             // 4. Import via JS
             updateGoogleStatus('Importing to local storage...');
-            await import_deliveries(JSON.stringify(deliveries));
+            import_deliveries(JSON.stringify(deliveries));
 
             updateGoogleStatus(`Successfully imported from ${selectedFile.name}!`);
             renderDeliveries();
@@ -1371,7 +1463,7 @@ export function initUI() {
 
             // 3. Import via JS
             updateGoogleStatus('Importing to local storage...');
-            await import_deliveries(json);
+            import_deliveries(json);
 
             updateGoogleStatus(`Successfully imported from ${selectedFile.name}!`);
             renderDeliveries(); // Refresh the list if visible
@@ -1621,12 +1713,6 @@ export function initUI() {
     }
 
     // Initial run
-    try {
-        initialize();
-    } catch (e) {
-        console.error('initialize() failed', e);
-    }
-
     const schema = (get_schema_version && get_schema_version()) || '';
     const hasOrders = getOrders().length > 0;
     const btnSeed = document.getElementById('btn-seed');
@@ -1639,5 +1725,6 @@ export function initUI() {
     setupNav();
     setupFilters();
     render();
-    initGoogle();
+    renderDeliveries();
+    await initGoogle();
 }
