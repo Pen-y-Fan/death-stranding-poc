@@ -58,9 +58,12 @@ Filters: Card fields, input (checkboxes) and labels are on different lines, can 
 Client and destination swap button: can the emoji be changed to ⇄,
 Can the button be the same height as the select input? (35 px with 4 px margin top)
 
-When searching by an order number, once the full order number is entered, and return or tab is pressed, if the order is found, can the focus be moved to the button: either start (if the status is not in progress) or deliver (if the status is in progress)? If the card is not in view, scroll to the card.
+When searching by an order number, once the full order number is entered, and return or tab is pressed, if the order is
+found, can the focus be moved to the button: either start (if the status is not in progress) or deliver (if the status
+is in progress)? If the card is not in view, scroll to the card.
 
-If the keyboard is used can the focus be moved to the card button when keys are pressed, e.g. When not in progress: s for start, or when in progress: d for deliver, l for lost, s for store and f for fail.
+If the keyboard is used can the focus be moved to the card button when keys are pressed, e.g. When not in progress: s
+for start, or when in progress: d for deliver, l for lost, s for store and f for fail.
 
 Cards:
 
@@ -90,17 +93,20 @@ Pagination
 
 ### Deliveries page
 
-The order search should be the same height and style as the order search on the order page. It looks smaller and the X is outside the input.
+The order search should be the same height and style as the order search on the order page. It looks smaller and the X
+is outside the input.
 
 Status: 'Inprogress' should have a space: 'In progress'.
 
 Make sure the bulk delete button is the same height as the search input, after changing.
 
-The order emoji 🎁 doesn't look good on the card, can it be removed, and the order number text be larger? (Same as revised Order card)
+The order emoji 🎁 doesn't look good on the card, can it be removed, and the order number text be larger? (Same as
+revised Order card)
 
 No need to show the ID.
 
-Started and Ended dates are not formatted correctly. They should be user-friendly date and time. E.g. dd mmmm yyyy hh:mm:ss
+Started and Ended dates are not formatted correctly. They should be user-friendly date and time. E.g. dd mmmm yyyy hh:
+mm:ss
 
 The cards should be paginated so that the user can see 30 deliveries at a time.
 
@@ -129,7 +135,8 @@ Failed (n)
 
 Central Region
 
-Originally the dashboard showed graphs, A to E was all the locations for Chiral Artist's Studio to Evo-devo Biologist. It may be worth listing each location with the number of deliveries made and also the number of deliveries expected e.g.
+Originally the dashboard showed graphs, A to E was all the locations for Chiral Artist's Studio to Evo-devo Biologist.
+It may be worth listing each location with the number of deliveries made and also the number of deliveries expected e.g.
 Chiral Artist's Studio
 From: 4 / 14 (28%)
 [progress bar]
@@ -171,6 +178,7 @@ Check if headings are accessible? It looks like we jumped from H1 to H3.
 The button "Manu" for the mobile menu is visible on lablet and desktop:
 
 ```html
+
 <button id="nav-toggle" class="mobile-only" aria-label="Toggle navigation" aria-expanded="true">
     <span class="hamburger"></span> Menu
 </button>
@@ -218,7 +226,7 @@ Can we split the deploy.yml:
 Properties may be safely replaced with 'padding' shorthand line 273 - 275
 
 ```css
- #delivery-search {
+#delivery-search {
     font-size: 1.2rem;
     padding: 0.75rem;
     padding-right: 2.5rem;
@@ -279,4 +287,37 @@ There are 65 problems reported by the IDE, some maybe informational; can these b
 - Unresolved variable id
 - Unresolved variable name
 - Promise returned from initGoogle is ignored
+
+## User experience feedback
+
+When buttons are clicked, the buttons should show the click event, it should be temporarily disabled. It should provide
+clear and concise feedback to the user about the action being performed. This includes displaying loading indicators
+while the button is processing (this is normally instant, it would be good to add a delay to the UI), and providing
+confirmation messages once the action is complete.
+
+The current action is instantaneous, e.g. on accepting an order, when the filter is 'none' is applied, the order
+instantly disappears. It would be better to display a clear button press, then fade or slide out the order.
+
+On the order page, it would be good to have current progress displayed under the Orders heading, this is already
+displayed in the Overall completion card, on the dashboard, e.g. Orders Completed: 258 / 540 (48%). Do not display the
+full card, only the text under the Order heading.
+
+When viewing, then clicking the 'bulk' buttons, they should show the number of orders selected. It would be good to have
+a confirmation message. e.g. 'Bulk accept (2)' -> click -> '+2 orders accepted' (UI delay) -> 'Bulk accept'
+
+## Technical feedback
+
+ `death-stranding-poc/js/death_stranding_poc.js` 11 problems (IDE Warnings)
+
+- Unused function initSync :546
+- Unused constant delListDiv :558
+- Duplicate declaration :571
+- Duplicate declaration :583
+- Duplicate declaration :812
+- Duplicate declaration :1066
+- Duplicate declaration :1078
+- Duplicate declaration :1336
+- Unused property callback :1570
+- 'throw' of exception caught locally: 1681
+- 'throw' of exception caught locally :1788
 

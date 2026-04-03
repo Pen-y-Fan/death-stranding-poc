@@ -20,7 +20,7 @@
     </div>
 </nav>
 
-<div id="app-version">v0.1.2</div>
+<div id="app-version">v0.1.3</div>
 
 <section id="panel-dashboard" hidden>
     <h1>Dashboard</h1>
@@ -29,6 +29,7 @@
 
 <section id="panel-orders">
     <h1>Orders</h1>
+    <p id="orders-progress" class="progress-text"></p>
     <fieldset id="filters-container">
         <legend>Filters</legend>
         <div class="filter-row-top">
@@ -176,12 +177,9 @@
     </section>
 
 <script type="module">
-    import init, { initUI } from './js/death_stranding_poc.js';
+    import init from './js/death_stranding_poc.js';
 
     init()
-        .then(() => {
-            initUI();
-        })
         .catch(err => {
             console.error('JS init failed', err);
             const orderListDiv = document.getElementById('order-list');
